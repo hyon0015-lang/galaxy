@@ -1,0 +1,148 @@
+<!doctype html><meta charset=utf-8><title>星系试验</title><meta name=viewport content="width=device-width,initial-scale=1">
+<style>html,body{margin:0;background:#05060f;height:100%;overflow:hidden}canvas{width:100vw;height:100vh;object-fit:contain;image-rendering:pixelated;display:block}</style>
+<canvas id=c width=320 height=180></canvas>
+<script>
+const cv=document.getElementById('c'),g=cv.getContext('2d'),W=320,H=180;
+const R=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(Math.round(x),Math.round(y),w,h)};
+let seed=11;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+const CX=160,CY=92,RX=150,RY=54,N=5200;let TILT=-.28,GATH=1,ROT=0,SPIN=0,TT=-.28,TG=1,TS=0;
+const BL=['#bcd4ff','#8fb4ff','#dfe9ff','#6a8ee0','#ffffff'],GO=['#ffd98a','#ffc24a','#fff0b0','#e8903a','#ffffff'];
+const P=[];
+const HZ=['#7a6ab8','#8a78c8','#6a5aa8'],WARM=['#ffe9b0','#ffd9a0','#fff0c8','#ffc890'],RS=['#ffb9a8','#ffc8b0','#ffd8c0','#ffa890'],PK=['#ff9ac8','#ffc0dc','#ffffff','#ff7ab4'];
+const KN=[],DUST=[];
+for(let i=0;i<N;i++){const arm=i%2,u=Math.pow(rnd(),.7),r=.06+u*.94,wd=.2+.5*r,off=(rnd()+rnd()+rnd()-1.5)*wd,sp=arm*Math.PI+r*5.2+off,rr=r*(1+(rnd()-.5)*.06);
+ const far=Math.abs(off)/wd>.7;const core=rnd()<.2;const rc=core?Math.pow(rnd(),2)*.24:rr,ac=core?rnd()*6.283:sp;
+ const warm=rnd()<Math.max(0,1-rc/.5);P.push({r:rc,a:ac,arm:core?2:arm,c:core?WARM[rnd()*4|0]:far?HZ[rnd()*3|0]:warm?WARM[rnd()*4|0]:(arm?RS:BL)[rnd()*4|0],ph:rnd()*6.283,z:(rnd()-.5)*.1,big:!far&&rnd()<.05,dim:far?.55:1})}
+// 星云结：沿旋臂的粉色小团
+for(let k=0;k<16;k++){const arm=k%2,r=.38+rnd()*.58,base=arm*Math.PI+r*5.2+(rnd()-.5)*.1;for(let j=0;j<46;j++){const rr=r+(rnd()-.5)*.05,aa=base+(rnd()-.5)*.09;P.push({r:rr,a:aa,arm:arm,c:PK[rnd()*4|0],ph:rnd()*6.283,z:0,big:rnd()<.15,dim:1})}KN.push({r,a:base})}
+// 尘埃带：旋臂内侧的暗纹
+for(let i=0;i<1100;i++){const arm=i%2,r=.12+Math.pow(rnd(),.8)*.82,wd=.2+.5*r;DUST.push({r,a:arm*Math.PI+r*5.2-wd*(.85+rnd()*.3)+(rnd()-.5)*.05})}
+const ICON={
+ rabbit:(x,y)=>{R(x+3,y,1,4,'#fff');R(x+6,y,1,4,'#fff');R(x+2,y+4,6,5,'#fff');R(x+3,y+6,1,1,'#2a1a2a');R(x+6,y+6,1,1,'#2a1a2a');R(x+4,y+8,2,1,'#f0a0b4')},
+ ghost:(x,y)=>{R(x+2,y+1,6,8,'#e8f0ff');R(x+3,y,4,1,'#e8f0ff');R(x+2,y+9,2,1,'#e8f0ff');R(x+6,y+9,2,1,'#e8f0ff');R(x+3,y+4,1,2,'#2a2a4a');R(x+6,y+4,1,2,'#2a2a4a')},
+ moon:(x,y)=>{R(x+3,y+1,4,8,'#ffe9a0');R(x+2,y+2,6,6,'#ffe9a0');R(x+5,y+2,3,6,'#2a2250');R(x+4,y+3,2,4,'#2a2250')},
+ clock:(x,y)=>{R(x+2,y+2,6,6,'#cfd6e6');R(x+3,y+3,4,4,'#2a2250');R(x+5,y+3,1,3,'#ffd65a');R(x+5,y+5,2,1,'#ffd65a')},
+ star:(x,y)=>{R(x+4,y+1,2,8,'#ffd65a');R(x+1,y+4,8,2,'#ffd65a');R(x+3,y+3,4,4,'#fff0b0')},
+ gift:(x,y)=>{R(x+2,y+4,6,5,'#e8a0c8');R(x+4,y+4,2,5,'#fff6e8');R(x+2,y+3,6,2,'#f4c0dc');R(x+3,y+1,2,2,'#fff6e8');R(x+5,y+1,2,2,'#fff6e8')}};
+const FR=['rabbit','ghost','moon','clock','star','gift'];
+const hx=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)],mx=(a,b,k)=>{const A=hx(a),B=hx(b);return '#'+A.map((v,i)=>Math.round(v+(B[i]-v)*k).toString(16).padStart(2,'0')).join('')};
+const PLT={rabbit:['#f2a8c4','#ffd0e0'],ghost:['#a8c4f0','#e0ecff'],moon:['#d8c890','#f4e8c0'],clock:['#9aa8c8','#d0d8ee'],star:['#ffd65a','#fff4c0'],gift:['#e8a888','#ffd0a8']};
+const POP=[0,0,0,0,0,0];
+function planet(x,y,k,al,d){const cx=Math.round(x+6),cy=Math.round(y+7),nm=FR[k],[c1,c2]=PLT[nm],r=Math.round(5+1.6*(d||0));
+ // 光晕
+ g.globalAlpha=al*.35;const hq=g.createRadialGradient(cx,cy,1,cx,cy,r+9);hq.addColorStop(0,c2);hq.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=hq;g.fillRect(cx-r-9,cy-r-9,(r+9)*2,(r+9)*2);
+ g.globalAlpha=al;
+ if(nm==='clock'){ // 星环（后半）
+  g.globalAlpha=al*.7;for(let i=0;i<40;i++){const a=i/40*6.283;if(Math.sin(a)<0)R(cx+Math.cos(a)*(r+4),cy+Math.sin(a)*(r+4)*.3-1,1,1,'#c8d0e8')}g.globalAlpha=al}
+ if(nm==='star'){const p=1+.3*Math.sin(t/12);R(cx-r-2,cy,(r+2)*2+1,1,'#ffe9a0');R(cx,cy-r-2,1,(r+2)*2+1,'#ffe9a0');
+  for(let j=-r+1;j<r;j++){const w=Math.round(Math.sqrt(r*r-j*j));R(cx-w,cy+j,w*2+1,1,j*j<r*.8?'#fff8d8':'#ffd65a')}}
+ else{const lx0=CX-cx,ly0=CY-cy,ln=Math.hypot(lx0,ly0)||1,lx=lx0/ln,ly=ly0/ln;
+  for(let j=-r;j<=r;j++)for(let i=-r;i<=r;i++){const q=i*i+j*j;if(q>r*r+r*.4)continue;const nz=Math.sqrt(Math.max(0,1-q/(r*r)));
+   const lam=(i*lx+j*ly)/r*.7+nz*.45;let col=lam>.62?c2:lam>.3?mx(c1,c2,.35):lam>.05?c1:mx(c1,'#10102a',.55);
+   if(nm==='gift'&&(j===0||j===1)&&q<r*r)col=lam>.3?'#ffe08a':'#c8a050';
+   if(nm==='moon'&&((i===-1&&j===-1)||(i===2&&j===1)||(i===0&&j===2&&r>4)))col=mx(c1,'#40382a',.5);
+   if(nm==='ghost'&&(j===-1&&i>-r+1&&i<r-1||(j===2&&i>-2&&i<r-1)))col='#f4f8ff';
+   R(cx+i,cy+j,1,1,col)}}
+ if(nm==='clock'){for(let i=0;i<40;i++){const a=i/40*6.283;if(Math.sin(a)>=0)R(cx+Math.cos(a)*(r+4),cy+Math.sin(a)*(r+4)*.3-1,1,1,'#e0e6f6')}}
+ if(POP[k]>0){const p=POP[k];g.globalAlpha=Math.min(1,p/20)*al;R(cx-8,cy-r-18,17,15,'#17163a');R(cx-8,cy-r-18,17,1,c2);R(cx-8,cy-r-4,17,1,c2);R(cx-8,cy-r-18,1,15,c2);R(cx+8,cy-r-18,1,15,c2);ICON[nm](cx-5,cy-r-15);g.globalAlpha=al}
+ g.globalAlpha=1}
+function frame(x,y,k,al,d){planet(x,y,k,al,d)}
+function star4(x,y,r,c){R(x-r,y,r*2+1,1,c);R(x,y-r,1,r*2+1,c);R(x-1,y-1,3,3,c)}
+
+let MF=1;const SP=[];let flash=0,hold=0,meet=0,prevTG=1,shoot=null,cap='',capT=0,FRP=[];
+const CAPS={rabbit:'兔子：今天也要好好吃饭。',ghost:'小鬼：……其实我一直在这儿呢。',moon:'月亮：值得点一点。',clock:'钟：23:40。还不睡？',star:'星星：眨了眨眼。',gift:'礼物：金色那份，你找到了吗？'};
+function caption(s){cap=s;capT=200;const d=document.getElementById('gc');if(d){d.textContent=s;d.style.opacity=1}}
+function burst(){for(let i=0;i<170;i++){const a=rnd()*6.283,v=.6+rnd()*2.4;SP.push({x:CX,y:CY,vx:Math.cos(a)*v,vy:Math.sin(a)*v*.8,l:50+rnd()*50|0,c:['#ffd98a','#bcd4ff','#fff6d8','#ffc24a'][rnd()*4|0]})}flash=18}
+function eggs(){for(let i=0;i<6;i++)if(POP[i]>0)POP[i]--;
+ // 握拳到底并停住 → 碰在一起
+ if(GATH<.12&&!meet){if(++hold>100){meet=1;flash=24;caption('两颗星星碰在一起的时候，一只小鬼，和一只兔子，认识了。')}}else if(GATH>=.12){hold=0}
+ if(meet&&GATH>.4){meet=0}
+ // 突然张开 → 砰
+ if(prevTG<.2&&TG>.6){burst();caption('砰。')}prevTG=TG;
+ if(!shoot&&t%520===260)shoot={x:-10,y:20+rnd()*60,vx:3.2,vy:1.1,l:70};
+}
+function drawEggs(){
+ SP.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.025;p.vx*=.985;p.l--;g.globalAlpha=Math.max(0,Math.min(1,p.l/30));R(p.x,p.y,1,1,p.c)});g.globalAlpha=1;for(let i=SP.length-1;i>=0;i--)if(SP[i].l<=0)SP.splice(i,1);
+ if(flash>0){g.globalAlpha=flash/30;const q=g.createRadialGradient(CX,CY,0,CX,CY,60);q.addColorStop(0,'#fff6d8');q.addColorStop(1,'rgba(255,220,140,0)');g.fillStyle=q;g.fillRect(CX-60,CY-60,120,120);g.globalAlpha=1;flash--}
+ if(meet){g.save();g.globalAlpha=.95;g.translate(CX,CY+Math.sin(t/25)*1.5);g.scale(2.2,2.2);ICON.rabbit(-12,-9);ICON.ghost(2,-9);g.restore();g.globalAlpha=1}
+ if(shoot){const s=shoot;s.x+=s.vx;s.y+=s.vy;s.l--;for(let i=0;i<10;i++){g.globalAlpha=(1-i/10)*.8;R(s.x-i*3,s.y-i*1.05,2,1,'#fff6d8')}g.globalAlpha=1;if(s.l<=0)shoot=null}
+ if(capT>0){capT--;if(capT===0){const d=document.getElementById('gc');if(d)d.style.opacity=0}}
+}
+let t=0;
+
+// ===== 深空背景 =====
+const NZ=(()=>{const w=160,h=90,c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d'),id=x.createImageData(w,h);
+ let sd=5;const rr=()=>(sd=(sd*16807)%2147483647)/2147483647;const L=[];for(let o=0;o<4;o++){const n=4<<o,m=[];for(let i=0;i<=n*(w/h)+1;i++){m[i]=[];for(let j=0;j<=n+1;j++)m[i][j]=rr()}L.push([n,m])}
+ const sm=t=>t*t*(3-2*t),val=(o,u,v)=>{const[n,m]=L[o],fx=u*n*(w/h),fy=v*n,i=fx|0,j=fy|0,a=sm(fx-i),b=sm(fy-j);return m[i][j]*(1-a)*(1-b)+m[i+1][j]*a*(1-b)+m[i][j+1]*(1-a)*b+m[i+1][j+1]*a*b};
+ for(let j=0;j<h;j++)for(let i=0;i<w;i++){const u=i/w,v=j/h;let f=0,amp=.5;for(let o=0;o<4;o++){f+=val(o,u,v)*amp;amp*=.5}
+  const f2=val(1,(u+.37)%1,(v+.21)%1)*.6+val(2,(u+.6)%1,(v+.7)%1)*.4;
+  const al=Math.max(0,Math.min(1,(f-.42)*2.6)),k=(j*w+i)*4;
+  // 发射星云：玫红 / 青蓝 / 紫 混合
+  const mix=f2;let r=70+110*mix,g2=40+60*(1-mix),bl=110+60*(1-mix);
+  id.data[k]=r;id.data[k+1]=g2;id.data[k+2]=bl;id.data[k+3]=al*88}
+ x.putImageData(id,0,0);return c})();
+const DF=[];{let q=9;const r=()=>(q=(q*16807)%2147483647)/2147483647;for(let i=0;i<44;i++)DF.push({x:r()*W,y:r()*H,rx:1.2+r()*3,ry:.5+r()*1.6,a:r()*3.14,c:['255,210,160','160,190,255','255,170,160','210,180,255','255,240,200'][r()*5|0],al:.25+r()*.45})}
+const STAR=[];{let q=21;const r=()=>(q=(q*16807)%2147483647)/2147483647;const TC=['#9bb8ff','#cad8ff','#ffffff','#fff4d8','#ffd9a0','#ffb080'];for(let i=0;i<190;i++){const l=r()<.5?0:r()<.6?1:2;STAR.push({x:r()*W,y:r()*H,l,c:TC[r()*6|0],ph:r()*6.3,sp:r()<(.022*(l+1))})}}
+function bg(){g.fillStyle='#04050d';g.fillRect(0,0,W,H);
+ const tw=TILT+.28,px=(l)=>Math.sin(ROT*.35)*(2+l*3),py=(l)=>tw*(4+l*10);
+ // 星云（最远）
+ g.globalAlpha=.9;g.drawImage(NZ,-8+px(0)*.6,-4+py(0)*.5,W+16,H+8);g.globalAlpha=1;
+ // 银河尘光
+ g.save();g.translate(CX,CY);g.rotate(TILT);g.scale(1,.38);const hq=g.createRadialGradient(0,0,0,0,0,170);hq.addColorStop(0,'rgba(255,224,160,.38)');hq.addColorStop(.3,'rgba(120,120,230,.16)');hq.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=hq;g.fillRect(-170,-170,340,340);g.restore();
+ // 远处的小星系
+ DF.forEach(d=>{const x=d.x+px(0)*.4,y=d.y+py(0)*.35;g.save();g.translate(x,y);g.rotate(d.a);g.scale(1,d.ry/d.rx);const q=g.createRadialGradient(0,0,0,0,0,d.rx);q.addColorStop(0,'rgba('+d.c+','+d.al+')');q.addColorStop(1,'rgba('+d.c+',0)');g.fillStyle=q;g.fillRect(-d.rx,-d.rx,d.rx*2,d.rx*2);g.restore()});
+ // 恒星：三层视差，有颜色，亮的带十字光芒
+ STAR.forEach(s=>{const x=((s.x+px(s.l))%W+W)%W,y=((s.y+py(s.l))%H+H)%H,tw2=.55+.45*Math.sin(t/(26+s.l*8)+s.ph);g.globalAlpha=(.35+.2*s.l)*tw2;R(x,y,1,1,s.c);
+  if(s.sp){g.globalAlpha=.4*tw2;R(x-2,y,5,1,s.c);R(x,y-2,1,5,s.c);g.globalAlpha=.9;R(x,y,1,1,'#fff')}});g.globalAlpha=1}
+const proj=(r,a,z)=>{r=r*(.16+.84*GATH);const x=Math.cos(a)*r*RX,y=Math.sin(a)*r*RY;return[CX+x*Math.cos(TILT)-y*Math.sin(TILT),CY+x*Math.sin(TILT)+y*Math.cos(TILT),Math.sin(a)]};
+function draw(){bg();GATH+=(TG-GATH)*.08;TILT+=(TT-TILT)*.08;SPIN+=(TS-SPIN)*.1;ROT+=.004+SPIN;const rot=ROT;
+ const F=FR.map((_,i)=>{const r=.42+((i*37)%5)*.11,a=rot*(1.6-r)*1.6+i*1.05,p=proj(r,a);return{x:p[0]-6,y:p[1]-7+Math.sin(t/40+i)*1.2,d:p[2],k:i,sc:r}});
+ MF+=(meet?-.06:.06);MF=Math.max(0,Math.min(1,MF));F.filter(f=>f.d<0).forEach(f=>frame(f.x,f.y,f.k,.7*MF,f.d));
+ g.globalCompositeOperation='lighter';P.forEach(p=>{const a=p.a+rot*(1.7-p.r*1.5),q=proj(p.r,a),tw=.55+.45*Math.sin(t/16+p.ph);
+   g.globalAlpha=Math.min(1,(.24+.34*(1-p.r*.55))*tw*(q[2]<0?.85:1)*p.dim);R(q[0],q[1]+p.z*30,p.big?2:1,p.big?2:1,p.c)});g.globalCompositeOperation='source-over';
+ g.globalAlpha=1;
+ DUST.forEach(p=>{const a=p.a+rot*(1.7-p.r*1.5),q=proj(p.r,a);g.globalAlpha=.32;R(q[0],q[1],1,1,'#0a0a22')});g.globalAlpha=1;
+ KN.forEach(k=>{const q=proj(k.r,k.a+rot*(1.7-k.r*1.5)),pu=.5+.5*Math.sin(t/50+k.r*9);g.globalAlpha=.16*pu+.08;const gq=g.createRadialGradient(q[0],q[1],0,q[0],q[1],9);gq.addColorStop(0,'#ff9ac8');gq.addColorStop(1,'rgba(255,150,200,0)');g.fillStyle=gq;g.fillRect(q[0]-9,q[1]-9,18,18)});g.globalAlpha=1;
+ // 核心光
+ g.globalAlpha=.55;const cq=g.createRadialGradient(CX,CY,0,CX,CY,14);cq.addColorStop(0,'#fff6d8');cq.addColorStop(1,'rgba(255,220,140,0)');g.fillStyle=cq;g.fillRect(CX-14,CY-14,28,28);g.globalAlpha=1;
+ star4(CX,CY,Math.round(4+Math.sin(t/14)*1.2),'#fff6d8');
+ F.filter(f=>f.d>=0).forEach(f=>frame(f.x,f.y,f.k,MF,f.d));FRP=F;eggs();drawEggs();
+ t++}
+
+const UI={st:'idle',msg:'',hand:null};
+const cam=document.createElement('video');cam.playsInline=true;cam.muted=true;
+function btn(){const b=document.createElement('button');b.id='gb';b.textContent='🖐 手势';b.style.cssText='position:fixed;left:12px;bottom:12px;font:14px/1 system-ui;padding:9px 12px;border-radius:8px;border:2px solid #8a6a42;background:#2a2250;color:#ffe9a0;cursor:pointer;z-index:5';document.body.appendChild(b);
+ const m=document.createElement('div');m.id='gm';m.style.cssText='position:fixed;left:12px;bottom:56px;font:13px system-ui;color:#cfd6ff;opacity:.85;z-index:5;text-shadow:0 1px 2px #000';document.body.appendChild(m);
+ const pv=document.createElement('canvas');pv.id='gp';pv.width=80;pv.height=60;pv.style.cssText='position:fixed;right:12px;bottom:12px;width:120px;height:90px;border:2px solid #8a6a42;border-radius:6px;opacity:.0;z-index:5;transition:opacity .3s;transform:scaleX(-1)';document.body.appendChild(pv);
+ b.onclick=startHand}
+function say(s){UI.msg=s;const m=document.getElementById('gm');if(m)m.textContent=s}
+function load(src){return new Promise((ok,no)=>{const e=document.createElement('script');e.src=src;e.onload=ok;e.onerror=()=>no(new Error('load '+src));document.head.appendChild(e)})}
+let hands=null,busy=0,lost=0;const BLOBS={};
+function feed(lm){ // lm: 21 个点，x,y 0..1（未镜像）
+ const d=(a,b)=>Math.hypot(lm[a].x-lm[b].x,lm[a].y-lm[b].y),palm=d(0,9)||.001;
+ const tips=[4,8,12,16,20].map(i=>d(0,i)/palm),open=tips.reduce((a,b)=>a+b,0)/5; // 握拳≈0.9–1.2，张开≈1.8–2.2
+ const o=Math.max(0,Math.min(1,(open-1.15)/(1.75-1.15)));
+ const x=1-lm[9].x,y=lm[9].y;
+ TG=.0+o;TT=-.28+(y-.5)*1.1;TS=(x-.5)*.05;
+ say(o>.66?'手张开':o<.3?'握拳 · 星系聚拢':'再张开一点')}
+async function startHand(){const b=document.getElementById('gb');if(UI.st==='on'){stopHand();return}
+ try{say('请求摄像头…');const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:320,height:240},audio:false});cam.srcObject=s;await cam.play();
+  say('加载手势识别…');await load('mp/hands.js');
+  for(const f of ['hands.binarypb','hand_landmark_lite.tflite','hands_solution_packed_assets.data']){const b64=await (await fetch('mp/'+f+'.b64.txt')).text(),bin=atob(b64.trim()),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);BLOBS[f]=URL.createObjectURL(new Blob([u],{type:'application/octet-stream'}))}
+  hands=new Hands({locateFile:f=>BLOBS[f]||'mp/'+f});hands.setOptions({maxNumHands:1,modelComplexity:0,minDetectionConfidence:.6,minTrackingConfidence:.5,selfieMode:false});
+  hands.onResults(r=>{busy=0;const pv=document.getElementById('gp'),px=pv.getContext('2d');px.drawImage(cam,0,0,80,60);
+   if(r.multiHandLandmarks&&r.multiHandLandmarks[0]){lost=0;feed(r.multiHandLandmarks[0])}else{if(++lost>20){TS=0;say('没看到手 · 把手举到镜头前')}}});
+  await hands.initialize();UI.st='on';b.textContent='✋ 关闭手势';document.getElementById('gp').style.opacity=.9;say('把手举到镜头前');
+  (function pump(){if(UI.st!=='on')return;if(!busy&&cam.readyState>=2){busy=1;hands.send({image:cam}).catch(()=>{busy=0})}requestAnimationFrame(pump)})();
+ }catch(e){UI.st='idle';say(e&&e.name==='NotAllowedError'?'没有摄像头权限，用手指拖动也可以':'手势用不了（'+(e&&e.message||e)+'），用手指拖动也可以')}}
+function stopHand(){UI.st='idle';try{cam.srcObject&&cam.srcObject.getTracks().forEach(t=>t.stop())}catch(e){}document.getElementById('gb').textContent='🖐 手势';document.getElementById('gp').style.opacity=0;TG=1;TS=0;TT=-.28;say('')}
+// 没有摄像头时：指针拖动（左右=旋转，上下=倾斜，按住=聚拢）
+let pd=0;cv.addEventListener('pointerdown',e=>{if(UI.st==='on')return;pd=1;TG=0});addEventListener('pointerup',()=>{if(UI.st==='on')return;pd=0;TG=1;TS=0;TT=-.28});
+addEventListener('pointermove',e=>{if(UI.st==='on'||!pd)return;const r=cv.getBoundingClientRect();TS=((e.clientX-r.left)/r.width-.5)*.05;TT=-.28+((e.clientY-r.top)/r.height-.5)*1.1});
+cv.addEventListener('click',e=>{const r=cv.getBoundingClientRect(),sc=Math.min(r.width/W,r.height/H),ox=r.left+(r.width-W*sc)/2,oy=r.top+(r.height-H*sc)/2,x=(e.clientX-ox)/sc,y=(e.clientY-oy)/sc;
+ const hit=FRP.slice().sort((a,b)=>b.d-a.d).find(f=>Math.hypot(x-(f.x+6),y-(f.y+7))<=11);
+ if(hit){POP[hit.k]=150;caption(CAPS[FR[hit.k]]);SP.push(...Array.from({length:14},()=>({x:hit.x+6,y:hit.y+7,vx:(rnd()-.5)*2,vy:-rnd()*1.6,l:30,c:'#ffe9a0'})))}});
+(function(){const d=document.createElement('div');d.id='gc';d.style.cssText='position:fixed;left:50%;bottom:7%;transform:translateX(-50%);font:15px/1.5 system-ui;color:#ffe9a0;background:rgba(20,10,40,.78);border:2px solid #8a6a42;border-radius:6px;padding:8px 14px;opacity:0;transition:opacity .4s;max-width:80vw;text-align:center;z-index:6;pointer-events:none';document.body.appendChild(d)})();
+btn();window.__feed=feed;window.__burst=burst;window.__setT=(a,b)=>{TG=a;GATH=b};window.__cap=caption;
+if(location.search.indexOf('still')<0){(function loop(){draw();requestAnimationFrame(loop)})()}else{for(let i=0;i<+(location.search.split('=')[1]||60);i++)draw()}
+</script>
