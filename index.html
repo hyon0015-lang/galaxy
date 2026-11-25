@@ -95,7 +95,7 @@ function bg(){g.fillStyle='#04050d';g.fillRect(0,0,W,H);
  STAR.forEach(s=>{const x=((s.x+px(s.l))%W+W)%W,y=((s.y+py(s.l))%H+H)%H,tw2=.55+.45*Math.sin(t/(26+s.l*8)+s.ph);g.globalAlpha=(.35+.2*s.l)*tw2;R(x,y,1,1,s.c);
   if(s.sp){g.globalAlpha=.4*tw2;R(x-2,y,5,1,s.c);R(x,y-2,1,5,s.c);g.globalAlpha=.9;R(x,y,1,1,'#fff')}});g.globalAlpha=1}
 const proj=(r,a,z)=>{r=r*(.16+.84*GATH);const x=Math.cos(a)*r*RX,y=Math.sin(a)*r*RY;return[CX+x*Math.cos(TILT)-y*Math.sin(TILT),CY+x*Math.sin(TILT)+y*Math.cos(TILT),Math.sin(a)]};
-function draw(){bg();GATH+=(TG-GATH)*.08;TILT+=(TT-TILT)*.08;SPIN+=(TS-SPIN)*.1;ROT+=.004+SPIN;const rot=ROT;
+function draw(){bg();GATH+=(TG-GATH)*.22;TILT+=(TT-TILT)*.16;SPIN+=(TS-SPIN)*.2;ROT+=.004+SPIN;const rot=ROT;
  const F=FR.map((_,i)=>{const r=.42+((i*37)%5)*.11,a=rot*(1.6-r)*1.6+i*1.05,p=proj(r,a);return{x:p[0]-6,y:p[1]-7+Math.sin(t/40+i)*1.2,d:p[2],k:i,sc:r}});
  MF+=(meet?-.06:.06);MF=Math.max(0,Math.min(1,MF));F.filter(f=>f.d<0).forEach(f=>frame(f.x,f.y,f.k,.7*MF,f.d));
  g.globalCompositeOperation='lighter';P.forEach(p=>{const a=p.a+rot*(1.7-p.r*1.5),q=proj(p.r,a),tw=.55+.45*Math.sin(t/16+p.ph);
@@ -118,15 +118,18 @@ function btn(){const b=document.createElement('button');b.id='gb';b.textContent=
 function say(s){UI.msg=s;const m=document.getElementById('gm');if(m)m.textContent=s}
 function load(src){return new Promise((ok,no)=>{const e=document.createElement('script');e.src=src;e.onload=ok;e.onerror=()=>no(new Error('load '+src));document.head.appendChild(e)})}
 let hands=null,busy=0,lost=0;const BLOBS={};
+let omin=99,omax=0;
 function feed(lm){ // lm: 21 个点，x,y 0..1（未镜像）
  const d=(a,b)=>Math.hypot(lm[a].x-lm[b].x,lm[a].y-lm[b].y),palm=d(0,9)||.001;
- const tips=[4,8,12,16,20].map(i=>d(0,i)/palm),open=tips.reduce((a,b)=>a+b,0)/5; // 握拳≈0.9–1.2，张开≈1.8–2.2
- const o=Math.max(0,Math.min(1,(open-1.15)/(1.75-1.15)));
- const x=1-lm[9].x,y=lm[9].y;
- TG=.0+o;TT=-.28+(y-.5)*1.1;TS=(x-.5)*.05;
- say(o>.66?'手张开':o<.3?'握拳 · 星系聚拢':'再张开一点')}
+ const op=[8,12,16,20].reduce((q,i)=>q+d(0,i)/palm,0)/4; // 四指指尖到手腕 / 手掌大小，不含拇指
+ omin=Math.min(op,omin+.004);omax=Math.max(op,omax-.004); // 自动校准：记住最近的最小/最大
+ const lo=Math.min(omin,1.35),hi=Math.max(omax,1.8),rng=Math.max(.5,hi-lo);
+ let o=Math.max(0,Math.min(1,(op-lo)/rng));o=o<.2?0:o>.8?1:(o-.2)/.6; // 两端留死区，容易到底
+ const x=1-lm[9].x,y=lm[9].y,dx=Math.abs(x-.5)<.06?0:x-.5;
+ TG=o;TT=-.28+Math.max(-.7,Math.min(.7,(y-.5)*1.8));TS=dx*.1;
+ say((o>.8?'张开':o<.2?'握拳 · 聚拢':'开合')+' '+(o*100|0)+'%')}
 async function startHand(){const b=document.getElementById('gb');if(UI.st==='on'){stopHand();return}
- try{say('请求摄像头…');const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:320,height:240},audio:false});cam.srcObject=s;await cam.play();
+ try{say('请求摄像头…');const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:false});cam.srcObject=s;await cam.play();
   say('加载手势识别…');await load('mp/hands.js');
   for(const f of ['hands.binarypb','hand_landmark_lite.tflite','hands_solution_packed_assets.data']){const b64=await (await fetch('mp/'+f+'.b64.txt')).text(),bin=atob(b64.trim()),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);BLOBS[f]=URL.createObjectURL(new Blob([u],{type:'application/octet-stream'}))}
   hands=new Hands({locateFile:f=>BLOBS[f]||'mp/'+f});hands.setOptions({maxNumHands:1,modelComplexity:0,minDetectionConfidence:.6,minTrackingConfidence:.5,selfieMode:false});
