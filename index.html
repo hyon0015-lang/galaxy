@@ -122,7 +122,7 @@ function btn(){const b=document.createElement('button');b.id='gb';b.textContent=
 function say(s){UI.msg=s;const m=document.getElementById('gm');if(m)m.textContent=s}
 function load(src){return new Promise((ok,no)=>{const e=document.createElement('script');e.src=src;e.onload=ok;e.onerror=()=>no(new Error('load '+src));document.head.appendChild(e)})}
 let hands=null,busy=0,lost=0;const BLOBS={};
-let omin=99,omax=0,fx=null,fy=null,fo=null,lastx=null;
+let omin=99,omax=0,fx=null,fy=null,fo=null,lastx=null,lasty=null,GR=0;const TR=[];
 const mapX=x=>Math.max(-.1,Math.min(1.1,(1-x-.5)/.7+.5)),mapY=y=>Math.max(-.1,Math.min(1.1,(y-.5)/.7+.5));
 const adapt=(p,x,k)=>p+(x-p)*Math.min(.85,.2+Math.abs(x-p)*k); // 慢时稳、快时跟手
 function impulse(dx){YV=Math.max(-.09,Math.min(.09,YV+dx*3.2))}
@@ -133,24 +133,31 @@ function feed(lm){ // lm: 21 个点，x,y 0..1（未镜像）
  const lo=Math.min(omin,1.35),hi=Math.max(omax,1.8),rng=Math.max(.5,hi-lo);
  let o=Math.max(0,Math.min(1,(op-lo)/rng));o=o<.2?0:o>.8?1:(o-.2)/.6;
  const x=mapX(lm[9].x),y=mapY(lm[9].y);
- if(fx===null){fx=x;fy=y;fo=o;lastx=x}
+ if(fx===null){fx=x;fy=y;fo=o;lastx=x;lasty=y}
  fx=adapt(fx,x,14);fy=adapt(fy,y,14);fo=adapt(fo,o,3);
- const dx=fx-lastx;lastx=fx;if(Math.abs(dx)>.002)impulse(dx); // 手扫过去，星系被带着转
- TG=fo;TP=Math.max(-1.5,Math.min(1.5,.38+(.5-fy)*3.2));
+ const dx=fx-lastx,dy=fy-lasty;lastx=fx;lasty=fy;
+ if(fo<.3)GR=1;else if(fo>.55)GR=0; // 滞回：握拳=抓住，张开=松手
+ if(GR){YAW+=dx*2.4;YV=Math.max(-.09,Math.min(.09,YV*.5+dx*.6));TP=Math.max(-1.5,Math.min(1.5,TP-dy*2.4))} // 抓住拖拽，松手后带惯性
+ TG=fo;
  say((fo>.8?'张开':fo<.2?'握拳 · 聚拢':'开合')+' '+(fo*100|0)+'%')}
 async function startHand(){const b=document.getElementById('gb');if(UI.st==='on'){stopHand();return}
  try{say('请求摄像头…');const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:false});cam.srcObject=s;await cam.play();
   say('加载手势识别…');await load('mp/hands.js');
   for(const f of ['hands.binarypb','hand_landmark_lite.tflite','hands_solution_packed_assets.data']){const b64=await (await fetch('mp/'+f+'.b64.txt')).text(),bin=atob(b64.trim()),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);BLOBS[f]=URL.createObjectURL(new Blob([u],{type:'application/octet-stream'}))}
   hands=new Hands({locateFile:f=>BLOBS[f]||'mp/'+f});hands.setOptions({maxNumHands:1,modelComplexity:0,minDetectionConfidence:.6,minTrackingConfidence:.5,selfieMode:false});
-  hands.onResults(r=>{busy=0;const ov=document.getElementById('go'),dpr=Math.min(2,devicePixelRatio||1),w=innerWidth,h=innerHeight;if(ov.width!==w*dpr||ov.height!==h*dpr){ov.width=w*dpr;ov.height=h*dpr}
+  hands.onResults(window.__onres=r=>{busy=0;const ov=document.getElementById('go'),dpr=Math.min(2,devicePixelRatio||1),w=innerWidth,h=innerHeight;if(ov.width!==w*dpr||ov.height!==h*dpr){ov.width=w*dpr;ov.height=h*dpr}
    const ox=ov.getContext('2d');ox.setTransform(dpr,0,0,dpr,0,0);ox.clearRect(0,0,w,h);
-   if(r.multiHandLandmarks&&r.multiHandLandmarks[0]){const L=r.multiHandLandmarks[0],X=q=>mapX(q.x)*w,Y=q=>mapY(q.y)*h;
-    ox.lineCap='round';ox.lineWidth=3;ox.strokeStyle='rgba(255,233,160,.75)';ox.beginPath();
-    [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]].forEach(([a,b])=>{ox.moveTo(X(L[a]),Y(L[a]));ox.lineTo(X(L[b]),Y(L[b]))});ox.stroke();
-    const px0=X(L[9]),py0=Y(L[9]),rad=26+fo*44,gq=ox.createRadialGradient(px0,py0,rad*.2,px0,py0,rad);gq.addColorStop(0,'rgba(255,154,200,.0)');gq.addColorStop(.8,'rgba(255,154,200,.22)');gq.addColorStop(1,'rgba(255,200,230,.7)');ox.fillStyle=gq;ox.beginPath();ox.arc(px0,py0,rad,0,6.3);ox.fill();
-    L.forEach((q,i)=>{ox.fillStyle=[4,8,12,16,20].includes(i)?'#fff0f6':'#ff9ac8';ox.beginPath();ox.arc(X(q),Y(q),[4,8,12,16,20].includes(i)?6:4,0,6.3);ox.fill()});
-    lost=0;feed(L)}else{fx=null;lastx=null;if(++lost>20){say('没看到手 · 把手举到镜头前')}if(lost>45){TG=1;TP=.38}}});
+   if(r.multiHandLandmarks&&r.multiHandLandmarks[0]){const L=r.multiHandLandmarks[0];
+    lost=0;feed(L);
+    const c=Math.max(3,Math.round(h/140)),sx=v=>Math.round(v/c)*c,px=fx*w,py=fy*h,edge=Math.min(fx,1-fx,fy,1-fy)<.1,al=edge?.5:1;
+    TR.push([sx(px),sx(py)]);if(TR.length>8)TR.shift();
+    ox.globalAlpha=al;
+    TR.forEach((q,i)=>{if(i===TR.length-1)return;const f=i/TR.length;ox.fillStyle='rgba(255,210,230,'+(.15+f*.5)+')';if((i&1)||f>.5)ox.fillRect(q[0],q[1],c,c)});
+    const cx=sx(px),cy=sx(py),k=1-fo,rr=(2+fo*4)*c,col=k>.5?'#ffd98a':'#bfe6ff',n=8;
+    ox.fillStyle=col;for(let i=0;i<n;i++){const t=i/n*6.283+ROT,qx=sx(cx+Math.cos(t)*rr),qy=sx(cy+Math.sin(t)*rr);ox.fillRect(qx,qy,c,c)}
+    ox.fillStyle='#fff';ox.fillRect(cx,cy,c,c);ox.fillStyle=k>.5?'#ffb84a':'#ff9ac8';[[1,0],[-1,0],[0,1],[0,-1]].forEach(([a,b])=>ox.fillRect(cx+a*c,cy+b*c,c,c));
+    ox.globalAlpha=1;
+   }else{fx=null;lastx=null;lasty=null;GR=0;TR.length=0;if(++lost>20){say('没看到手 · 把手举到镜头前')}if(lost>45){TG=1;TP=.38}}});
   await hands.initialize();UI.st='on';b.textContent='✋ 关闭手势';say('把手举到镜头前');
   (function pump(){if(UI.st!=='on')return;if(!busy&&cam.readyState>=2){busy=1;hands.send({image:cam}).catch(()=>{busy=0})}requestAnimationFrame(pump)})();
  }catch(e){UI.st='idle';say(e&&e.name==='NotAllowedError'?'没有摄像头权限，用手指拖动也可以':'手势用不了（'+(e&&e.message||e)+'），用手指拖动也可以')}}
