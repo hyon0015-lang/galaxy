@@ -113,7 +113,7 @@ const UI={st:'idle',msg:'',hand:null};
 const cam=document.createElement('video');cam.playsInline=true;cam.muted=true;
 function btn(){const b=document.createElement('button');b.id='gb';b.textContent='🖐 手势';b.style.cssText='position:fixed;left:12px;bottom:12px;font:14px/1 system-ui;padding:9px 12px;border-radius:8px;border:2px solid #8a6a42;background:#2a2250;color:#ffe9a0;cursor:pointer;z-index:5';document.body.appendChild(b);
  const m=document.createElement('div');m.id='gm';m.style.cssText='position:fixed;left:12px;bottom:56px;font:13px system-ui;color:#cfd6ff;opacity:.85;z-index:5;text-shadow:0 1px 2px #000';document.body.appendChild(m);
- const pv=document.createElement('canvas');pv.id='gp';pv.width=80;pv.height=60;pv.style.cssText='position:fixed;right:12px;bottom:12px;width:120px;height:90px;border:2px solid #8a6a42;border-radius:6px;opacity:.0;z-index:5;transition:opacity .3s;transform:scaleX(-1)';document.body.appendChild(pv);
+ const pv=document.createElement('canvas');pv.id='gp';pv.width=240;pv.height=180;pv.style.cssText='position:fixed;right:12px;bottom:12px;width:min(38vw,300px);aspect-ratio:4/3;height:auto;border:2px solid #8a6a42;border-radius:8px;opacity:.0;z-index:5;transition:opacity .3s;transform:scaleX(-1)';document.body.appendChild(pv);
  b.onclick=startHand}
 function say(s){UI.msg=s;const m=document.getElementById('gm');if(m)m.textContent=s}
 function load(src){return new Promise((ok,no)=>{const e=document.createElement('script');e.src=src;e.onload=ok;e.onerror=()=>no(new Error('load '+src));document.head.appendChild(e)})}
@@ -133,7 +133,10 @@ async function startHand(){const b=document.getElementById('gb');if(UI.st==='on'
   say('加载手势识别…');await load('mp/hands.js');
   for(const f of ['hands.binarypb','hand_landmark_lite.tflite','hands_solution_packed_assets.data']){const b64=await (await fetch('mp/'+f+'.b64.txt')).text(),bin=atob(b64.trim()),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);BLOBS[f]=URL.createObjectURL(new Blob([u],{type:'application/octet-stream'}))}
   hands=new Hands({locateFile:f=>BLOBS[f]||'mp/'+f});hands.setOptions({maxNumHands:1,modelComplexity:0,minDetectionConfidence:.6,minTrackingConfidence:.5,selfieMode:false});
-  hands.onResults(r=>{busy=0;const pv=document.getElementById('gp'),px=pv.getContext('2d');px.drawImage(cam,0,0,80,60);
+  hands.onResults(r=>{busy=0;const pv=document.getElementById('gp'),px=pv.getContext('2d');px.drawImage(cam,0,0,240,180);
+   if(r.multiHandLandmarks&&r.multiHandLandmarks[0]){const L=r.multiHandLandmarks[0];px.strokeStyle='#ffe9a0';px.lineWidth=2;px.beginPath();
+    [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]].forEach(([a,b])=>{px.moveTo(L[a].x*240,L[a].y*180);px.lineTo(L[b].x*240,L[b].y*180)});px.stroke();
+    px.fillStyle='#ff9ac8';L.forEach(q=>{px.beginPath();px.arc(q.x*240,q.y*180,3,0,6.3);px.fill()})}
    if(r.multiHandLandmarks&&r.multiHandLandmarks[0]){lost=0;feed(r.multiHandLandmarks[0])}else{if(++lost>20){TS=0;say('没看到手 · 把手举到镜头前')}}});
   await hands.initialize();UI.st='on';b.textContent='✋ 关闭手势';document.getElementById('gp').style.opacity=.9;say('把手举到镜头前');
   (function pump(){if(UI.st!=='on')return;if(!busy&&cam.readyState>=2){busy=1;hands.send({image:cam}).catch(()=>{busy=0})}requestAnimationFrame(pump)})();
