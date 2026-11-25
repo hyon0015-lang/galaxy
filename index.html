@@ -117,12 +117,13 @@ const UI={st:'idle',msg:'',hand:null};
 const cam=document.createElement('video');cam.playsInline=true;cam.muted=true;
 function btn(){const b=document.createElement('button');b.id='gb';b.textContent='🖐 手势';b.style.cssText='position:fixed;left:12px;bottom:12px;font:14px/1 system-ui;padding:9px 12px;border-radius:8px;border:2px solid #8a6a42;background:#2a2250;color:#ffe9a0;cursor:pointer;z-index:5';document.body.appendChild(b);
  const m=document.createElement('div');m.id='gm';m.style.cssText='position:fixed;left:12px;bottom:56px;font:13px system-ui;color:#cfd6ff;opacity:.85;z-index:5;text-shadow:0 1px 2px #000';document.body.appendChild(m);
- const pv=document.createElement('canvas');pv.id='gp';pv.width=240;pv.height=180;pv.style.cssText='position:fixed;right:12px;bottom:12px;width:min(38vw,300px);aspect-ratio:4/3;height:auto;border:2px solid #8a6a42;border-radius:8px;opacity:.0;z-index:5;transition:opacity .3s;transform:scaleX(-1)';document.body.appendChild(pv);
+ const pv=document.createElement('canvas');pv.id='gp';pv.width=240;pv.height=180;pv.style.display='none';document.body.appendChild(pv);const ov=document.createElement('canvas');ov.id='go';ov.style.cssText='position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:4';document.body.appendChild(ov);
  b.onclick=startHand}
 function say(s){UI.msg=s;const m=document.getElementById('gm');if(m)m.textContent=s}
 function load(src){return new Promise((ok,no)=>{const e=document.createElement('script');e.src=src;e.onload=ok;e.onerror=()=>no(new Error('load '+src));document.head.appendChild(e)})}
 let hands=null,busy=0,lost=0;const BLOBS={};
 let omin=99,omax=0,fx=null,fy=null,fo=null,lastx=null;
+const mapX=x=>Math.max(-.1,Math.min(1.1,(1-x-.5)/.7+.5)),mapY=y=>Math.max(-.1,Math.min(1.1,(y-.5)/.7+.5));
 const adapt=(p,x,k)=>p+(x-p)*Math.min(.85,.2+Math.abs(x-p)*k); // 慢时稳、快时跟手
 function impulse(dx){YV=Math.max(-.09,Math.min(.09,YV+dx*3.2))}
 function feed(lm){ // lm: 21 个点，x,y 0..1（未镜像）
@@ -131,7 +132,7 @@ function feed(lm){ // lm: 21 个点，x,y 0..1（未镜像）
  omin=Math.min(op,omin+.004);omax=Math.max(op,omax-.004); // 自动校准
  const lo=Math.min(omin,1.35),hi=Math.max(omax,1.8),rng=Math.max(.5,hi-lo);
  let o=Math.max(0,Math.min(1,(op-lo)/rng));o=o<.2?0:o>.8?1:(o-.2)/.6;
- const x=1-lm[9].x,y=lm[9].y;
+ const x=mapX(lm[9].x),y=mapY(lm[9].y);
  if(fx===null){fx=x;fy=y;fo=o;lastx=x}
  fx=adapt(fx,x,14);fy=adapt(fy,y,14);fo=adapt(fo,o,3);
  const dx=fx-lastx;lastx=fx;if(Math.abs(dx)>.002)impulse(dx); // 手扫过去，星系被带着转
@@ -142,15 +143,18 @@ async function startHand(){const b=document.getElementById('gb');if(UI.st==='on'
   say('加载手势识别…');await load('mp/hands.js');
   for(const f of ['hands.binarypb','hand_landmark_lite.tflite','hands_solution_packed_assets.data']){const b64=await (await fetch('mp/'+f+'.b64.txt')).text(),bin=atob(b64.trim()),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);BLOBS[f]=URL.createObjectURL(new Blob([u],{type:'application/octet-stream'}))}
   hands=new Hands({locateFile:f=>BLOBS[f]||'mp/'+f});hands.setOptions({maxNumHands:1,modelComplexity:0,minDetectionConfidence:.6,minTrackingConfidence:.5,selfieMode:false});
-  hands.onResults(r=>{busy=0;const pv=document.getElementById('gp'),px=pv.getContext('2d');px.drawImage(cam,0,0,240,180);
-   if(r.multiHandLandmarks&&r.multiHandLandmarks[0]){const L=r.multiHandLandmarks[0];px.strokeStyle='#ffe9a0';px.lineWidth=2;px.beginPath();
-    [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]].forEach(([a,b])=>{px.moveTo(L[a].x*240,L[a].y*180);px.lineTo(L[b].x*240,L[b].y*180)});px.stroke();
-    px.fillStyle='#ff9ac8';L.forEach(q=>{px.beginPath();px.arc(q.x*240,q.y*180,3,0,6.3);px.fill()})}
-   if(r.multiHandLandmarks&&r.multiHandLandmarks[0]){lost=0;feed(r.multiHandLandmarks[0])}else{fx=null;lastx=null;if(++lost>20){say('没看到手 · 把手举到镜头前')}if(lost>45){TG=1;TP=.38}}});
-  await hands.initialize();UI.st='on';b.textContent='✋ 关闭手势';document.getElementById('gp').style.opacity=.9;say('把手举到镜头前');
+  hands.onResults(r=>{busy=0;const ov=document.getElementById('go'),dpr=Math.min(2,devicePixelRatio||1),w=innerWidth,h=innerHeight;if(ov.width!==w*dpr||ov.height!==h*dpr){ov.width=w*dpr;ov.height=h*dpr}
+   const ox=ov.getContext('2d');ox.setTransform(dpr,0,0,dpr,0,0);ox.clearRect(0,0,w,h);
+   if(r.multiHandLandmarks&&r.multiHandLandmarks[0]){const L=r.multiHandLandmarks[0],X=q=>mapX(q.x)*w,Y=q=>mapY(q.y)*h;
+    ox.lineCap='round';ox.lineWidth=3;ox.strokeStyle='rgba(255,233,160,.75)';ox.beginPath();
+    [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]].forEach(([a,b])=>{ox.moveTo(X(L[a]),Y(L[a]));ox.lineTo(X(L[b]),Y(L[b]))});ox.stroke();
+    const px0=X(L[9]),py0=Y(L[9]),rad=26+fo*44,gq=ox.createRadialGradient(px0,py0,rad*.2,px0,py0,rad);gq.addColorStop(0,'rgba(255,154,200,.0)');gq.addColorStop(.8,'rgba(255,154,200,.22)');gq.addColorStop(1,'rgba(255,200,230,.7)');ox.fillStyle=gq;ox.beginPath();ox.arc(px0,py0,rad,0,6.3);ox.fill();
+    L.forEach((q,i)=>{ox.fillStyle=[4,8,12,16,20].includes(i)?'#fff0f6':'#ff9ac8';ox.beginPath();ox.arc(X(q),Y(q),[4,8,12,16,20].includes(i)?6:4,0,6.3);ox.fill()});
+    lost=0;feed(L)}else{fx=null;lastx=null;if(++lost>20){say('没看到手 · 把手举到镜头前')}if(lost>45){TG=1;TP=.38}}});
+  await hands.initialize();UI.st='on';b.textContent='✋ 关闭手势';say('把手举到镜头前');
   (function pump(){if(UI.st!=='on')return;if(!busy&&cam.readyState>=2){busy=1;hands.send({image:cam}).catch(()=>{busy=0})}requestAnimationFrame(pump)})();
  }catch(e){UI.st='idle';say(e&&e.name==='NotAllowedError'?'没有摄像头权限，用手指拖动也可以':'手势用不了（'+(e&&e.message||e)+'），用手指拖动也可以')}}
-function stopHand(){UI.st='idle';try{cam.srcObject&&cam.srcObject.getTracks().forEach(t=>t.stop())}catch(e){}document.getElementById('gb').textContent='🖐 手势';document.getElementById('gp').style.opacity=0;TG=1;TP=.38;say('')}
+function stopHand(){UI.st='idle';try{cam.srcObject&&cam.srcObject.getTracks().forEach(t=>t.stop())}catch(e){}document.getElementById('gb').textContent='🖐 手势';{const o=document.getElementById('go');o.getContext('2d').clearRect(0,0,o.width,o.height)}TG=1;TP=.38;say('')}
 // 没有摄像头时：指针拖动（左右=旋转，上下=倾斜，按住=聚拢）
 let pd=0;cv.addEventListener('pointerdown',e=>{if(UI.st==='on')return;pd=1;TG=0});addEventListener('pointerup',()=>{if(UI.st==='on')return;pd=0;TG=1});
 let plx=null;addEventListener('pointermove',e=>{if(UI.st==='on'||!pd)return;const r=cv.getBoundingClientRect();if(plx!==null)impulse((e.clientX-plx)/r.width*1.4);plx=e.clientX;TP=Math.max(-1.5,Math.min(1.5,.38+(.5-(e.clientY-r.top)/r.height)*3.2))});addEventListener('pointerup',()=>{plx=null});
