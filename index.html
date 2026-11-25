@@ -122,6 +122,7 @@ function btn(){const b=document.createElement('button');b.id='gb';b.textContent=
 function say(s){UI.msg=s;const m=document.getElementById('gm');if(m)m.textContent=s}
 function load(src){return new Promise((ok,no)=>{const e=document.createElement('script');e.src=src;e.onload=ok;e.onerror=()=>no(new Error('load '+src));document.head.appendChild(e)})}
 let hands=null,busy=0,lost=0;const BLOBS={};
+let GD=0,GDONE=0;function drawCore(ox,c,px,py,fo,al){const sx=v=>Math.round(v/c)*c,cx=sx(px),cy=sx(py),k=1-fo,rr=(2+fo*4)*c,col=k>.5?'#ffd98a':'#bfe6ff',n=8;ox.globalAlpha=al;ox.fillStyle=col;for(let i=0;i<n;i++){const t=i/n*6.283+ROT;ox.fillRect(sx(cx+Math.cos(t)*rr),sx(cy+Math.sin(t)*rr),c,c)}ox.fillStyle='#fff';ox.fillRect(cx,cy,c,c);ox.fillStyle=k>.5?'#ffb84a':'#ff9ac8';[[1,0],[-1,0],[0,1],[0,-1]].forEach(([a,b])=>ox.fillRect(cx+a*c,cy+b*c,c,c));ox.globalAlpha=1}
 let omin=99,omax=0,fx=null,fy=null,fo=null,lastx=null,lasty=null,GR=0;const TR=[];
 const mapX=x=>Math.max(-.1,Math.min(1.1,(1-x-.5)/.7+.5)),mapY=y=>Math.max(-.1,Math.min(1.1,(y-.5)/.7+.5));
 const adapt=(p,x,k)=>p+(x-p)*Math.min(.85,.2+Math.abs(x-p)*k); // 慢时稳、快时跟手
@@ -137,7 +138,7 @@ function feed(lm){ // lm: 21 个点，x,y 0..1（未镜像）
  fx=adapt(fx,x,14);fy=adapt(fy,y,14);fo=adapt(fo,o,3);
  const dx=fx-lastx,dy=fy-lasty;lastx=fx;lasty=fy;
  if(fo<.3)GR=1;else if(fo>.55)GR=0; // 滞回：握拳=抓住，张开=松手
- if(GR){YAW+=dx*2.4;YV=Math.max(-.09,Math.min(.09,YV*.5+dx*.6));TP=Math.max(-1.5,Math.min(1.5,TP-dy*2.4))} // 抓住拖拽，松手后带惯性
+ if(GR){GD+=Math.abs(dx);if(GD>.3&&!GDONE){GDONE=1;say('')}YAW+=dx*2.4;YV=Math.max(-.09,Math.min(.09,YV*.5+dx*.6));TP=Math.max(-1.5,Math.min(1.5,TP-dy*2.4))} // 抓住拖拽，松手后带惯性
  TG=fo;
  say((fo>.8?'张开':fo<.2?'握拳 · 聚拢':'开合')+' '+(fo*100|0)+'%')}
 async function startHand(){const b=document.getElementById('gb');if(UI.st==='on'){stopHand();return}
@@ -151,13 +152,12 @@ async function startHand(){const b=document.getElementById('gb');if(UI.st==='on'
     lost=0;feed(L);
     const c=Math.max(3,Math.round(h/140)),sx=v=>Math.round(v/c)*c,px=fx*w,py=fy*h,edge=Math.min(fx,1-fx,fy,1-fy)<.1,al=edge?.5:1;
     TR.push([sx(px),sx(py)]);if(TR.length>8)TR.shift();
-    ox.globalAlpha=al;
     TR.forEach((q,i)=>{if(i===TR.length-1)return;const f=i/TR.length;ox.fillStyle='rgba(255,210,230,'+(.15+f*.5)+')';if((i&1)||f>.5)ox.fillRect(q[0],q[1],c,c)});
-    const cx=sx(px),cy=sx(py),k=1-fo,rr=(2+fo*4)*c,col=k>.5?'#ffd98a':'#bfe6ff',n=8;
-    ox.fillStyle=col;for(let i=0;i<n;i++){const t=i/n*6.283+ROT,qx=sx(cx+Math.cos(t)*rr),qy=sx(cy+Math.sin(t)*rr);ox.fillRect(qx,qy,c,c)}
-    ox.fillStyle='#fff';ox.fillRect(cx,cy,c,c);ox.fillStyle=k>.5?'#ffb84a':'#ff9ac8';[[1,0],[-1,0],[0,1],[0,-1]].forEach(([a,b])=>ox.fillRect(cx+a*c,cy+b*c,c,c));
-    ox.globalAlpha=1;
-   }else{fx=null;lastx=null;lasty=null;GR=0;TR.length=0;if(++lost>20){say('没看到手 · 把手举到镜头前')}if(lost>45){TG=1;TP=.38}}});
+    drawCore(ox,c,px,py,fo,al);
+   }else{fx=null;lastx=null;lasty=null;GR=0;TR.length=0;
+    if(!GDONE){const c=Math.max(3,Math.round(h/140)),t=(performance.now()/1000)%4.2;let gx=.38,go=1;if(t<1){go=1}else if(t<1.5){go=1-(t-1)/.5}else if(t<3){go=0;gx=.38+.24*(t-1.5)/1.5}else if(t<3.5){go=(t-3)/.5;gx=.62}else{go=1;gx=.62-.24*(t-3.5)/.7}
+     drawCore(ox,c*1.5|0,gx*w,.5*h,go,.7);ox.fillStyle='rgba(255,240,220,.7)';ox.font=Math.round(h/34)+'px sans-serif';ox.textAlign='center';ox.fillText('握拳抓住星系，拖动，再张开松手',w/2,h*.5+h*.14)}
+if(++lost>20){say('没看到手 · 把手举到镜头前')}if(lost>45){TG=1;TP=.38}}});
   await hands.initialize();UI.st='on';b.textContent='✋ 关闭手势';say('把手举到镜头前');
   (function pump(){if(UI.st!=='on')return;if(!busy&&cam.readyState>=2){busy=1;hands.send({image:cam}).catch(()=>{busy=0})}requestAnimationFrame(pump)})();
  }catch(e){UI.st='idle';say(e&&e.name==='NotAllowedError'?'没有摄像头权限，用手指拖动也可以':'手势用不了（'+(e&&e.message||e)+'），用手指拖动也可以')}}
