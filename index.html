@@ -5,7 +5,7 @@
 const cv=document.getElementById('c'),g=cv.getContext('2d'),W=320,H=180;
 const R=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(Math.round(x),Math.round(y),w,h)};
 let seed=11;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
-const CX=160,CY=92,RX=150,RY=54,N=5200;let TILT=-.28,GATH=1,ROT=0,SPIN=0,TT=-.28,TG=1,TS=0;
+const CX=160,CY=92,RX=150,RY=54,N=5200;let TILT=-.28,GATH=1,GV=0,ROT=0,SPIN=0,TT=-.28,TG=1,TS=0;
 const BL=['#bcd4ff','#8fb4ff','#dfe9ff','#6a8ee0','#ffffff'],GO=['#ffd98a','#ffc24a','#fff0b0','#e8903a','#ffffff'];
 const P=[];
 const HZ=['#7a6ab8','#8a78c8','#6a5aa8'],WARM=['#ffe9b0','#ffd9a0','#fff0c8','#ffc890'],RS=['#ffb9a8','#ffc8b0','#ffd8c0','#ffa890'],PK=['#ff9ac8','#ffc0dc','#ffffff','#ff7ab4'];
@@ -94,8 +94,8 @@ function bg(){g.fillStyle='#04050d';g.fillRect(0,0,W,H);
  // 恒星：三层视差，有颜色，亮的带十字光芒
  STAR.forEach(s=>{const x=((s.x+px(s.l))%W+W)%W,y=((s.y+py(s.l))%H+H)%H,tw2=.55+.45*Math.sin(t/(26+s.l*8)+s.ph);g.globalAlpha=(.35+.2*s.l)*tw2;R(x,y,1,1,s.c);
   if(s.sp){g.globalAlpha=.4*tw2;R(x-2,y,5,1,s.c);R(x,y-2,1,5,s.c);g.globalAlpha=.9;R(x,y,1,1,'#fff')}});g.globalAlpha=1}
-const proj=(r,a,z)=>{r=r*(.16+.84*GATH);const x=Math.cos(a)*r*RX,y=Math.sin(a)*r*RY;return[CX+x*Math.cos(TILT)-y*Math.sin(TILT),CY+x*Math.sin(TILT)+y*Math.cos(TILT),Math.sin(a)]};
-function draw(){bg();GATH+=(TG-GATH)*.22;TILT+=(TT-TILT)*.16;SPIN+=(TS-SPIN)*.2;ROT+=.004+SPIN;const rot=ROT;
+const proj=(r,a,z)=>{r=r*(.16+.84*Math.max(0,GATH));const x=Math.cos(a)*r*RX,y=Math.sin(a)*r*RY;return[CX+x*Math.cos(TILT)-y*Math.sin(TILT),CY+x*Math.sin(TILT)+y*Math.cos(TILT),Math.sin(a)]};
+function draw(){bg();GV+=(TG-GATH)*.06;GV*=.72;GATH+=GV;TILT+=(TT-TILT)*.14;SPIN*=.955;ROT+=.004+SPIN;const rot=ROT;
  const F=FR.map((_,i)=>{const r=.42+((i*37)%5)*.11,a=rot*(1.6-r)*1.6+i*1.05,p=proj(r,a);return{x:p[0]-6,y:p[1]-7+Math.sin(t/40+i)*1.2,d:p[2],k:i,sc:r}});
  MF+=(meet?-.06:.06);MF=Math.max(0,Math.min(1,MF));F.filter(f=>f.d<0).forEach(f=>frame(f.x,f.y,f.k,.7*MF,f.d));
  g.globalCompositeOperation='lighter';P.forEach(p=>{const a=p.a+rot*(1.7-p.r*1.5),q=proj(p.r,a),tw=.55+.45*Math.sin(t/16+p.ph);
@@ -118,16 +118,21 @@ function btn(){const b=document.createElement('button');b.id='gb';b.textContent=
 function say(s){UI.msg=s;const m=document.getElementById('gm');if(m)m.textContent=s}
 function load(src){return new Promise((ok,no)=>{const e=document.createElement('script');e.src=src;e.onload=ok;e.onerror=()=>no(new Error('load '+src));document.head.appendChild(e)})}
 let hands=null,busy=0,lost=0;const BLOBS={};
-let omin=99,omax=0;
+let omin=99,omax=0,fx=null,fy=null,fo=null,lastx=null;
+const adapt=(p,x,k)=>p+(x-p)*Math.min(.85,.2+Math.abs(x-p)*k); // 慢时稳、快时跟手
+function impulse(dx){SPIN=Math.max(-.06,Math.min(.06,SPIN+dx*1.7))}
 function feed(lm){ // lm: 21 个点，x,y 0..1（未镜像）
  const d=(a,b)=>Math.hypot(lm[a].x-lm[b].x,lm[a].y-lm[b].y),palm=d(0,9)||.001;
  const op=[8,12,16,20].reduce((q,i)=>q+d(0,i)/palm,0)/4; // 四指指尖到手腕 / 手掌大小，不含拇指
- omin=Math.min(op,omin+.004);omax=Math.max(op,omax-.004); // 自动校准：记住最近的最小/最大
+ omin=Math.min(op,omin+.004);omax=Math.max(op,omax-.004); // 自动校准
  const lo=Math.min(omin,1.35),hi=Math.max(omax,1.8),rng=Math.max(.5,hi-lo);
- let o=Math.max(0,Math.min(1,(op-lo)/rng));o=o<.2?0:o>.8?1:(o-.2)/.6; // 两端留死区，容易到底
- const x=1-lm[9].x,y=lm[9].y,dx=Math.abs(x-.5)<.06?0:x-.5;
- TG=o;TT=-.28+Math.max(-.7,Math.min(.7,(y-.5)*1.8));TS=dx*.1;
- say((o>.8?'张开':o<.2?'握拳 · 聚拢':'开合')+' '+(o*100|0)+'%')}
+ let o=Math.max(0,Math.min(1,(op-lo)/rng));o=o<.2?0:o>.8?1:(o-.2)/.6;
+ const x=1-lm[9].x,y=lm[9].y;
+ if(fx===null){fx=x;fy=y;fo=o;lastx=x}
+ fx=adapt(fx,x,14);fy=adapt(fy,y,14);fo=adapt(fo,o,3);
+ const dx=fx-lastx;lastx=fx;if(Math.abs(dx)>.002)impulse(dx); // 手扫过去，星系被带着转
+ TG=fo;TT=-.28+Math.max(-.7,Math.min(.7,(fy-.5)*1.8));
+ say((fo>.8?'张开':fo<.2?'握拳 · 聚拢':'开合')+' '+(fo*100|0)+'%')}
 async function startHand(){const b=document.getElementById('gb');if(UI.st==='on'){stopHand();return}
  try{say('请求摄像头…');const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:false});cam.srcObject=s;await cam.play();
   say('加载手势识别…');await load('mp/hands.js');
@@ -137,14 +142,14 @@ async function startHand(){const b=document.getElementById('gb');if(UI.st==='on'
    if(r.multiHandLandmarks&&r.multiHandLandmarks[0]){const L=r.multiHandLandmarks[0];px.strokeStyle='#ffe9a0';px.lineWidth=2;px.beginPath();
     [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]].forEach(([a,b])=>{px.moveTo(L[a].x*240,L[a].y*180);px.lineTo(L[b].x*240,L[b].y*180)});px.stroke();
     px.fillStyle='#ff9ac8';L.forEach(q=>{px.beginPath();px.arc(q.x*240,q.y*180,3,0,6.3);px.fill()})}
-   if(r.multiHandLandmarks&&r.multiHandLandmarks[0]){lost=0;feed(r.multiHandLandmarks[0])}else{if(++lost>20){TS=0;say('没看到手 · 把手举到镜头前')}}});
+   if(r.multiHandLandmarks&&r.multiHandLandmarks[0]){lost=0;feed(r.multiHandLandmarks[0])}else{fx=null;lastx=null;if(++lost>20){say('没看到手 · 把手举到镜头前')}if(lost>45){TG=1;TT=-.28}}});
   await hands.initialize();UI.st='on';b.textContent='✋ 关闭手势';document.getElementById('gp').style.opacity=.9;say('把手举到镜头前');
   (function pump(){if(UI.st!=='on')return;if(!busy&&cam.readyState>=2){busy=1;hands.send({image:cam}).catch(()=>{busy=0})}requestAnimationFrame(pump)})();
  }catch(e){UI.st='idle';say(e&&e.name==='NotAllowedError'?'没有摄像头权限，用手指拖动也可以':'手势用不了（'+(e&&e.message||e)+'），用手指拖动也可以')}}
 function stopHand(){UI.st='idle';try{cam.srcObject&&cam.srcObject.getTracks().forEach(t=>t.stop())}catch(e){}document.getElementById('gb').textContent='🖐 手势';document.getElementById('gp').style.opacity=0;TG=1;TS=0;TT=-.28;say('')}
 // 没有摄像头时：指针拖动（左右=旋转，上下=倾斜，按住=聚拢）
 let pd=0;cv.addEventListener('pointerdown',e=>{if(UI.st==='on')return;pd=1;TG=0});addEventListener('pointerup',()=>{if(UI.st==='on')return;pd=0;TG=1;TS=0;TT=-.28});
-addEventListener('pointermove',e=>{if(UI.st==='on'||!pd)return;const r=cv.getBoundingClientRect();TS=((e.clientX-r.left)/r.width-.5)*.05;TT=-.28+((e.clientY-r.top)/r.height-.5)*1.1});
+let plx=null;addEventListener('pointermove',e=>{if(UI.st==='on'||!pd)return;const r=cv.getBoundingClientRect();if(plx!==null)impulse((e.clientX-plx)/r.width*1.4);plx=e.clientX;TT=-.28+((e.clientY-r.top)/r.height-.5)*1.1});addEventListener('pointerup',()=>{plx=null});
 cv.addEventListener('click',e=>{const r=cv.getBoundingClientRect(),sc=Math.min(r.width/W,r.height/H),ox=r.left+(r.width-W*sc)/2,oy=r.top+(r.height-H*sc)/2,x=(e.clientX-ox)/sc,y=(e.clientY-oy)/sc;
  const hit=FRP.slice().sort((a,b)=>b.d-a.d).find(f=>Math.hypot(x-(f.x+6),y-(f.y+7))<=11);
  if(hit){POP[hit.k]=150;caption(CAPS[FR[hit.k]]);SP.push(...Array.from({length:14},()=>({x:hit.x+6,y:hit.y+7,vx:(rnd()-.5)*2,vy:-rnd()*1.6,l:30,c:'#ffe9a0'})))}});
