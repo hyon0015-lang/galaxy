@@ -2,10 +2,11 @@
 <style>html,body{margin:0;background:#05060f;height:100%;overflow:hidden}canvas{width:100vw;height:100vh;object-fit:contain;image-rendering:pixelated;display:block}</style>
 <canvas id=c width=320 height=180></canvas>
 <script>
-const cv=document.getElementById('c'),g=cv.getContext('2d'),W=320,H=180;
+const cv=document.getElementById('c'),g=cv.getContext('2d');let W=320;const H=180;
 const R=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(Math.round(x),Math.round(y),w,h)};
 let seed=11;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
-const CX=160,CY=92,RX=150,RY=54,N=5200;let TILT=-.28,GATH=1,GV=0,ROT=0,SPIN=0,TT=-.28,TG=1,TS=0;
+let CX=160;const CY=92,RX=118,N=5200,FOC=320;let GATH=1,GV=0,ROT=0,YAW=0,YV=0,PITCH=.38,TP=.38,ROLL=-.28,TG=1;
+function fit(){const w=Math.max(220,Math.min(520,Math.round(H*innerWidth/innerHeight)));if(w!==cv.width){cv.width=w;W=w;CX=w/2}}
 const BL=['#bcd4ff','#8fb4ff','#dfe9ff','#6a8ee0','#ffffff'],GO=['#ffd98a','#ffc24a','#fff0b0','#e8903a','#ffffff'];
 const P=[];
 const HZ=['#7a6ab8','#8a78c8','#6a5aa8'],WARM=['#ffe9b0','#ffd9a0','#fff0c8','#ffc890'],RS=['#ffb9a8','#ffc8b0','#ffd8c0','#ffa890'],PK=['#ff9ac8','#ffc0dc','#ffffff','#ff7ab4'];
@@ -71,9 +72,9 @@ function drawEggs(){
 let t=0;
 
 // ===== 深空背景 =====
-const NZ=(()=>{const w=160,h=90,c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d'),id=x.createImageData(w,h);
- let sd=5;const rr=()=>(sd=(sd*16807)%2147483647)/2147483647;const L=[];for(let o=0;o<4;o++){const n=4<<o,m=[];for(let i=0;i<=n*(w/h)+1;i++){m[i]=[];for(let j=0;j<=n+1;j++)m[i][j]=rr()}L.push([n,m])}
- const sm=t=>t*t*(3-2*t),val=(o,u,v)=>{const[n,m]=L[o],fx=u*n*(w/h),fy=v*n,i=fx|0,j=fy|0,a=sm(fx-i),b=sm(fy-j);return m[i][j]*(1-a)*(1-b)+m[i+1][j]*a*(1-b)+m[i][j+1]*(1-a)*b+m[i+1][j+1]*a*b};
+const NZ=(()=>{const w=192,h=108,c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d'),id=x.createImageData(w,h);
+ let sd=5;const rr=()=>(sd=(sd*16807)%2147483647)/2147483647;const L=[];for(let o=0;o<4;o++){const n=4<<o,cols=Math.round(n*w/h),m=[];for(let i=0;i<cols;i++){m[i]=[];for(let j=0;j<=n+1;j++)m[i][j]=rr()}L.push([n,m,cols])}
+ const sm=t=>t*t*(3-2*t),val=(o,u,v)=>{const[n,m,cols]=L[o],fx=u*cols,fy=v*n,i=fx|0,j=fy|0,a=sm(fx-i),b=sm(fy-j),i1=(i+1)%cols;return m[i][j]*(1-a)*(1-b)+m[i1][j]*a*(1-b)+m[i][j+1]*(1-a)*b+m[i1][j+1]*a*b};
  for(let j=0;j<h;j++)for(let i=0;i<w;i++){const u=i/w,v=j/h;let f=0,amp=.5;for(let o=0;o<4;o++){f+=val(o,u,v)*amp;amp*=.5}
   const f2=val(1,(u+.37)%1,(v+.21)%1)*.6+val(2,(u+.6)%1,(v+.7)%1)*.4;
   const al=Math.max(0,Math.min(1,(f-.42)*2.6)),k=(j*w+i)*4;
@@ -81,25 +82,28 @@ const NZ=(()=>{const w=160,h=90,c=document.createElement('canvas');c.width=w;c.h
   const mix=f2;let r=70+110*mix,g2=40+60*(1-mix),bl=110+60*(1-mix);
   id.data[k]=r;id.data[k+1]=g2;id.data[k+2]=bl;id.data[k+3]=al*88}
  x.putImageData(id,0,0);return c})();
-const DF=[];{let q=9;const r=()=>(q=(q*16807)%2147483647)/2147483647;for(let i=0;i<44;i++)DF.push({x:r()*W,y:r()*H,rx:1.2+r()*3,ry:.5+r()*1.6,a:r()*3.14,c:['255,210,160','160,190,255','255,170,160','210,180,255','255,240,200'][r()*5|0],al:.25+r()*.45})}
-const STAR=[];{let q=21;const r=()=>(q=(q*16807)%2147483647)/2147483647;const TC=['#9bb8ff','#cad8ff','#ffffff','#fff4d8','#ffd9a0','#ffb080'];for(let i=0;i<190;i++){const l=r()<.5?0:r()<.6?1:2;STAR.push({x:r()*W,y:r()*H,l,c:TC[r()*6|0],ph:r()*6.3,sp:r()<(.022*(l+1))})}}
+const DF=[];{let q=9;const r=()=>(q=(q*16807)%2147483647)/2147483647;for(let i=0;i<44;i++)DF.push({x:r(),y:r()*H,rx:1.2+r()*3,ry:.5+r()*1.6,a:r()*3.14,c:['255,210,160','160,190,255','255,170,160','210,180,255','255,240,200'][r()*5|0],al:.25+r()*.45})}
+const STAR=[];{let q=21;const r=()=>(q=(q*16807)%2147483647)/2147483647;const TC=['#9bb8ff','#cad8ff','#ffffff','#fff4d8','#ffd9a0','#ffb080'];for(let i=0;i<190;i++){const l=r()<.5?0:r()<.6?1:2;STAR.push({x:r(),y:r()*H,l,c:TC[r()*6|0],ph:r()*6.3,sp:r()<(.022*(l+1))})}}
 function bg(){g.fillStyle='#04050d';g.fillRect(0,0,W,H);
- const tw=TILT+.28,px=(l)=>Math.sin(ROT*.35)*(2+l*3),py=(l)=>tw*(4+l*10);
- // 星云（最远）
- g.globalAlpha=.9;g.drawImage(NZ,-8+px(0)*.6,-4+py(0)*.5,W+16,H+8);g.globalAlpha=1;
- // 银河尘光
- g.save();g.translate(CX,CY);g.rotate(TILT);g.scale(1,.38);const hq=g.createRadialGradient(0,0,0,0,0,170);hq.addColorStop(0,'rgba(255,224,160,.38)');hq.addColorStop(.3,'rgba(120,120,230,.16)');hq.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=hq;g.fillRect(-170,-170,340,340);g.restore();
+ const sc=(((YAW/6.2832)*W)%W+W)%W,py=Math.max(-12,Math.min(12,PITCH*8));
+ // 星云（可无缝环绕）
+ g.globalAlpha=.9;g.drawImage(NZ,-sc,-12+py,W,H+24);g.drawImage(NZ,-sc+W,-12+py,W,H+24);g.globalAlpha=1;
+ // 银河尘光：随视角变扁变圆
+ g.save();g.translate(CX,CY);g.rotate(ROLL);g.scale(1,Math.max(.14,Math.abs(Math.sin(PITCH))*.95+.08));const hq=g.createRadialGradient(0,0,0,0,0,170);hq.addColorStop(0,'rgba(255,224,160,.38)');hq.addColorStop(.3,'rgba(120,120,230,.16)');hq.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=hq;g.fillRect(-170,-170,340,340);g.restore();
  // 远处的小星系
- DF.forEach(d=>{const x=d.x+px(0)*.4,y=d.y+py(0)*.35;g.save();g.translate(x,y);g.rotate(d.a);g.scale(1,d.ry/d.rx);const q=g.createRadialGradient(0,0,0,0,0,d.rx);q.addColorStop(0,'rgba('+d.c+','+d.al+')');q.addColorStop(1,'rgba('+d.c+',0)');g.fillStyle=q;g.fillRect(-d.rx,-d.rx,d.rx*2,d.rx*2);g.restore()});
- // 恒星：三层视差，有颜色，亮的带十字光芒
- STAR.forEach(s=>{const x=((s.x+px(s.l))%W+W)%W,y=((s.y+py(s.l))%H+H)%H,tw2=.55+.45*Math.sin(t/(26+s.l*8)+s.ph);g.globalAlpha=(.35+.2*s.l)*tw2;R(x,y,1,1,s.c);
+ DF.forEach(d=>{const x=((d.x*W-sc)%W+W)%W,y=d.y+py*.5;g.save();g.translate(x,y);g.rotate(d.a);g.scale(1,d.ry/d.rx);const q=g.createRadialGradient(0,0,0,0,0,d.rx);q.addColorStop(0,'rgba('+d.c+','+d.al+')');q.addColorStop(1,'rgba('+d.c+',0)');g.fillStyle=q;g.fillRect(-d.rx,-d.rx,d.rx*2,d.rx*2);g.restore()});
+ // 恒星：同一个球面，转一整圈回到原处
+ STAR.forEach(s=>{const x=((s.x*W-sc)%W+W)%W,y=((s.y+py*(.7+s.l*.3))%H+H)%H,tw2=.55+.45*Math.sin(t/(26+s.l*8)+s.ph);g.globalAlpha=(.35+.2*s.l)*tw2;R(x,y,1,1,s.c);
   if(s.sp){g.globalAlpha=.4*tw2;R(x-2,y,5,1,s.c);R(x,y-2,1,5,s.c);g.globalAlpha=.9;R(x,y,1,1,'#fff')}});g.globalAlpha=1}
-const proj=(r,a,z)=>{r=r*(.16+.84*Math.max(0,GATH));const x=Math.cos(a)*r*RX,y=Math.sin(a)*r*RY;return[CX+x*Math.cos(TILT)-y*Math.sin(TILT),CY+x*Math.sin(TILT)+y*Math.cos(TILT),Math.sin(a)]};
-function draw(){bg();GV+=(TG-GATH)*.06;GV*=.72;GATH+=GV;TILT+=(TT-TILT)*.14;SPIN*=.955;ROT+=.004+SPIN;const rot=ROT;
+const proj=(r,a,zz)=>{r=r*(.16+.84*Math.max(0,GATH));const X=Math.cos(a)*r*RX,Z=Math.sin(a)*r*RX,Y=(zz||0)*60,
+ cy=Math.cos(YAW),sy=Math.sin(YAW),cp=Math.cos(PITCH),sp=Math.sin(PITCH),
+ x1=X*cy+Z*sy,z1=-X*sy+Z*cy,y2=Y*cp-z1*sp,z2=Y*sp+z1*cp,sc=FOC/(FOC+z2),sx=x1*sc,sy2=y2*sc,cr=Math.cos(ROLL),sr=Math.sin(ROLL);
+ return[CX+sx*cr-sy2*sr,CY+sx*sr+sy2*cr,-z2/RX,sc]};
+function draw(){bg();GV+=(TG-GATH)*.06;GV*=.72;GATH+=GV;PITCH+=(TP-PITCH)*.12;YV*=.955;YAW+=YV+.0016;ROT+=.004;const rot=ROT;
  const F=FR.map((_,i)=>{const r=.42+((i*37)%5)*.11,a=rot*(1.6-r)*1.6+i*1.05,p=proj(r,a);return{x:p[0]-6,y:p[1]-7+Math.sin(t/40+i)*1.2,d:p[2],k:i,sc:r}});
  MF+=(meet?-.06:.06);MF=Math.max(0,Math.min(1,MF));F.filter(f=>f.d<0).forEach(f=>frame(f.x,f.y,f.k,.7*MF,f.d));
- g.globalCompositeOperation='lighter';P.forEach(p=>{const a=p.a+rot*(1.7-p.r*1.5),q=proj(p.r,a),tw=.55+.45*Math.sin(t/16+p.ph);
-   g.globalAlpha=Math.min(1,(.24+.34*(1-p.r*.55))*tw*(q[2]<0?.85:1)*p.dim);R(q[0],q[1]+p.z*30,p.big?2:1,p.big?2:1,p.c)});g.globalCompositeOperation='source-over';
+ g.globalCompositeOperation='lighter';P.forEach(p=>{const a=p.a+rot*(1.7-p.r*1.5),q=proj(p.r,a,p.z),tw=.55+.45*Math.sin(t/16+p.ph);
+   g.globalAlpha=Math.min(1,(.24+.34*(1-p.r*.55))*tw*(q[2]<0?.85:1)*p.dim);R(q[0],q[1],p.big?2:1,p.big?2:1,p.c)});g.globalCompositeOperation='source-over';
  g.globalAlpha=1;
  DUST.forEach(p=>{const a=p.a+rot*(1.7-p.r*1.5),q=proj(p.r,a);g.globalAlpha=.32;R(q[0],q[1],1,1,'#0a0a22')});g.globalAlpha=1;
  KN.forEach(k=>{const q=proj(k.r,k.a+rot*(1.7-k.r*1.5)),pu=.5+.5*Math.sin(t/50+k.r*9);g.globalAlpha=.16*pu+.08;const gq=g.createRadialGradient(q[0],q[1],0,q[0],q[1],9);gq.addColorStop(0,'#ff9ac8');gq.addColorStop(1,'rgba(255,150,200,0)');g.fillStyle=gq;g.fillRect(q[0]-9,q[1]-9,18,18)});g.globalAlpha=1;
@@ -120,7 +124,7 @@ function load(src){return new Promise((ok,no)=>{const e=document.createElement('
 let hands=null,busy=0,lost=0;const BLOBS={};
 let omin=99,omax=0,fx=null,fy=null,fo=null,lastx=null;
 const adapt=(p,x,k)=>p+(x-p)*Math.min(.85,.2+Math.abs(x-p)*k); // 慢时稳、快时跟手
-function impulse(dx){SPIN=Math.max(-.06,Math.min(.06,SPIN+dx*1.7))}
+function impulse(dx){YV=Math.max(-.09,Math.min(.09,YV+dx*3.2))}
 function feed(lm){ // lm: 21 个点，x,y 0..1（未镜像）
  const d=(a,b)=>Math.hypot(lm[a].x-lm[b].x,lm[a].y-lm[b].y),palm=d(0,9)||.001;
  const op=[8,12,16,20].reduce((q,i)=>q+d(0,i)/palm,0)/4; // 四指指尖到手腕 / 手掌大小，不含拇指
@@ -131,7 +135,7 @@ function feed(lm){ // lm: 21 个点，x,y 0..1（未镜像）
  if(fx===null){fx=x;fy=y;fo=o;lastx=x}
  fx=adapt(fx,x,14);fy=adapt(fy,y,14);fo=adapt(fo,o,3);
  const dx=fx-lastx;lastx=fx;if(Math.abs(dx)>.002)impulse(dx); // 手扫过去，星系被带着转
- TG=fo;TT=-.28+Math.max(-.7,Math.min(.7,(fy-.5)*1.8));
+ TG=fo;TP=Math.max(-1.5,Math.min(1.5,.38+(.5-fy)*3.2));
  say((fo>.8?'张开':fo<.2?'握拳 · 聚拢':'开合')+' '+(fo*100|0)+'%')}
 async function startHand(){const b=document.getElementById('gb');if(UI.st==='on'){stopHand();return}
  try{say('请求摄像头…');const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:false});cam.srcObject=s;await cam.play();
@@ -142,18 +146,20 @@ async function startHand(){const b=document.getElementById('gb');if(UI.st==='on'
    if(r.multiHandLandmarks&&r.multiHandLandmarks[0]){const L=r.multiHandLandmarks[0];px.strokeStyle='#ffe9a0';px.lineWidth=2;px.beginPath();
     [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]].forEach(([a,b])=>{px.moveTo(L[a].x*240,L[a].y*180);px.lineTo(L[b].x*240,L[b].y*180)});px.stroke();
     px.fillStyle='#ff9ac8';L.forEach(q=>{px.beginPath();px.arc(q.x*240,q.y*180,3,0,6.3);px.fill()})}
-   if(r.multiHandLandmarks&&r.multiHandLandmarks[0]){lost=0;feed(r.multiHandLandmarks[0])}else{fx=null;lastx=null;if(++lost>20){say('没看到手 · 把手举到镜头前')}if(lost>45){TG=1;TT=-.28}}});
+   if(r.multiHandLandmarks&&r.multiHandLandmarks[0]){lost=0;feed(r.multiHandLandmarks[0])}else{fx=null;lastx=null;if(++lost>20){say('没看到手 · 把手举到镜头前')}if(lost>45){TG=1;TP=.38}}});
   await hands.initialize();UI.st='on';b.textContent='✋ 关闭手势';document.getElementById('gp').style.opacity=.9;say('把手举到镜头前');
   (function pump(){if(UI.st!=='on')return;if(!busy&&cam.readyState>=2){busy=1;hands.send({image:cam}).catch(()=>{busy=0})}requestAnimationFrame(pump)})();
  }catch(e){UI.st='idle';say(e&&e.name==='NotAllowedError'?'没有摄像头权限，用手指拖动也可以':'手势用不了（'+(e&&e.message||e)+'），用手指拖动也可以')}}
-function stopHand(){UI.st='idle';try{cam.srcObject&&cam.srcObject.getTracks().forEach(t=>t.stop())}catch(e){}document.getElementById('gb').textContent='🖐 手势';document.getElementById('gp').style.opacity=0;TG=1;TS=0;TT=-.28;say('')}
+function stopHand(){UI.st='idle';try{cam.srcObject&&cam.srcObject.getTracks().forEach(t=>t.stop())}catch(e){}document.getElementById('gb').textContent='🖐 手势';document.getElementById('gp').style.opacity=0;TG=1;TP=.38;say('')}
 // 没有摄像头时：指针拖动（左右=旋转，上下=倾斜，按住=聚拢）
-let pd=0;cv.addEventListener('pointerdown',e=>{if(UI.st==='on')return;pd=1;TG=0});addEventListener('pointerup',()=>{if(UI.st==='on')return;pd=0;TG=1;TS=0;TT=-.28});
-let plx=null;addEventListener('pointermove',e=>{if(UI.st==='on'||!pd)return;const r=cv.getBoundingClientRect();if(plx!==null)impulse((e.clientX-plx)/r.width*1.4);plx=e.clientX;TT=-.28+((e.clientY-r.top)/r.height-.5)*1.1});addEventListener('pointerup',()=>{plx=null});
+let pd=0;cv.addEventListener('pointerdown',e=>{if(UI.st==='on')return;pd=1;TG=0});addEventListener('pointerup',()=>{if(UI.st==='on')return;pd=0;TG=1});
+let plx=null;addEventListener('pointermove',e=>{if(UI.st==='on'||!pd)return;const r=cv.getBoundingClientRect();if(plx!==null)impulse((e.clientX-plx)/r.width*1.4);plx=e.clientX;TP=Math.max(-1.5,Math.min(1.5,.38+(.5-(e.clientY-r.top)/r.height)*3.2))});addEventListener('pointerup',()=>{plx=null});
 cv.addEventListener('click',e=>{const r=cv.getBoundingClientRect(),sc=Math.min(r.width/W,r.height/H),ox=r.left+(r.width-W*sc)/2,oy=r.top+(r.height-H*sc)/2,x=(e.clientX-ox)/sc,y=(e.clientY-oy)/sc;
  const hit=FRP.slice().sort((a,b)=>b.d-a.d).find(f=>Math.hypot(x-(f.x+6),y-(f.y+7))<=11);
  if(hit){POP[hit.k]=150;caption(CAPS[FR[hit.k]]);SP.push(...Array.from({length:14},()=>({x:hit.x+6,y:hit.y+7,vx:(rnd()-.5)*2,vy:-rnd()*1.6,l:30,c:'#ffe9a0'})))}});
 (function(){const d=document.createElement('div');d.id='gc';d.style.cssText='position:fixed;left:50%;bottom:7%;transform:translateX(-50%);font:15px/1.5 system-ui;color:#ffe9a0;background:rgba(20,10,40,.78);border:2px solid #8a6a42;border-radius:6px;padding:8px 14px;opacity:0;transition:opacity .4s;max-width:80vw;text-align:center;z-index:6;pointer-events:none';document.body.appendChild(d)})();
-btn();window.__feed=feed;window.__burst=burst;window.__setT=(a,b)=>{TG=a;GATH=b};window.__cap=caption;
+btn();fit();addEventListener('resize',fit);
+(function(){const de=document.documentElement;if(!(de.requestFullscreen||de.webkitRequestFullscreen))return;const b=document.createElement('button');b.textContent='⛶';b.title='全屏';b.style.cssText='position:fixed;right:12px;top:12px;font:18px/1 system-ui;padding:6px 10px;border-radius:8px;border:2px solid #8a6a42;background:rgba(42,34,80,.8);color:#ffe9a0;cursor:pointer;z-index:5';b.onclick=()=>{const fs=document.fullscreenElement||document.webkitFullscreenElement;if(fs){(document.exitFullscreen||document.webkitExitFullscreen).call(document)}else{(de.requestFullscreen||de.webkitRequestFullscreen).call(de)}};document.body.appendChild(b)})();
+window.__feed=feed;window.__v=(y,p)=>{YAW=y;PITCH=p;TP=p;YV=0};window.__burst=burst;window.__setT=(a,b)=>{TG=a;GATH=b};window.__cap=caption;
 if(location.search.indexOf('still')<0){(function loop(){draw();requestAnimationFrame(loop)})()}else{for(let i=0;i<+(location.search.split('=')[1]||60);i++)draw()}
 </script>
