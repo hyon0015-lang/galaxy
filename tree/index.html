@@ -6,7 +6,7 @@ const cv=document.getElementById('c'),g=cv.getContext('2d');let W=320;const H=18
 let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
 const HAND={on:0,x:0,y:0,o:1,dx:0,dy:0};let ROT=0,T=0,USR=0,HV=0,GL=0,FH=0,CXT=160,BG=null,LV=[],BYC=[];
 const PAL=['#ffe35e','#fdd237','#f7bd22','#ed a11c'.replace(' ',''),'#da7e1a','#b95c1b','#b8c24a','#e2713a','#82993a'];
-const CY=62,RXC=124,RYC=60,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const CY=68,RXC=114,RYC=54,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function build(){
  seed=7;BG=document.createElement('canvas');BG.width=W;BG.height=H;const b=BG.getContext('2d');
  const R2=(x,y,w,h,c)=>{b.fillStyle=c;b.fillRect(Math.round(x),Math.round(y),w,h)};
@@ -21,7 +21,7 @@ function build(){
  for(let y=0;y<26;y++){const w=Math.round(CXT*.55+y*1.1);R2(0,y+2,w,1,y%3===2?'#4b484b':'#5c595c')}
  R2(CXT*.34,0,8,12,'#3d3a3c');R2(CXT*.34-1,0,10,2,'#55524f');R2(CXT*.2,0,5,8,'#3d3a3c');
  for(let y=0;y<30;y++){const hw=Math.round(8+y*1.6);R2(CXT+12-hw,18+y,hw*2,1,'#4a3e3a')}
- R2(CXT+14,2,1,14,'#6a6560');
+
  // 左：奶黄色的墙与窗
  R2(0,34,CXT*.3,90,'#e3cf9c');R2(6,50,12,18,'#5d5448');R2(7,51,10,16,'#7d8a96');R2(11,51,1,16,'#5d5448');R2(4,68,16,2,'#c9b588');
  // 右：灰色平屋顶，边缘一条亮金属
@@ -31,15 +31,17 @@ function build(){
  R2(0,112,W-30,22,'#b8b5ad');R2(0,112,W-30,2,'#d3d0c8');for(let x=0;x<W-30;x+=26)R2(x,114,1,20,'#a29f97');R2(CXT+34,116,18,18,'#cfcac0');R2(CXT+34,116,18,1,'#a29f97');
  for(let y=134;y<H;y++)R2(0,y,W,1,mix('#a99f8c','#8e8571',(y-134)/46));
  for(let i=0;i<900;i++){R2(rnd()*W,134+rnd()*46,2,1,rnd()<.5?'#bdb39f':'#8b8270')}
- // 长椅、灌木
+ // 长椅
  R2(CXT-112,138,24,3,'#6b4a2c');R2(CXT-112,141,2,5,'#4a3220');R2(CXT-90,141,2,5,'#4a3220');
- for(let i=0;i<20;i++){const x=6+rnd()*120,y=156+rnd()*22,r=9+rnd()*9;blob(x,y,r,i%2?'#33602e':'#44703a')}
- for(let i=0;i<12;i++){const x=CXT+70+rnd()*60,y=162+rnd()*14,r=8+rnd()*6;blob(x,y,r,i%2?'#33602e':'#44703a')}
- for(let i=0;i<70;i++)R2(rnd()*130,150+rnd()*30,2,1,'#6f9a4a');
  // 小蓝架子和橙色线圈（照片里树下的小东西）
  R2(CXT+2,156,2,14,'#27406e');R2(CXT-3,153,12,3,'#e8e2d0');R2(CXT-1,157,5,6,'#e0701c');R2(CXT,158,3,4,'#f08a2a');
  // 地上落叶地毯
- for(let i=0;i<2300;i++){const a=rnd()*6.283,d=Math.sqrt(rnd()),x=CXT+Math.cos(a)*d*(150+rnd()*40),y=154+Math.sin(a)*d*28;if(y>134&&x>0&&x<W-30){R2(x,y,2,2,PAL[(rnd()*rnd()*4)|0])}}
+ for(let i=0;i<1700;i++){const a=rnd()*6.283,d=Math.sqrt(rnd()),x=CXT+Math.cos(a)*d*(125+rnd()*30),y=154+Math.sin(a)*d*28;if(y>134&&x>0&&x<W-30){R2(x,y,2,2,PAL[1+((rnd()*rnd()*3.5)|0)])}}
+ b.globalAlpha=.07;for(let k=0;k<6;k++){const rx=150-k*12,ry=21-k*2.5;for(let y=-ry;y<=ry;y++){const w=Math.sqrt(1-(y/ry)**2)*rx;b.fillStyle='#2a2238';b.fillRect(Math.round(CXT+14-w),150+y,Math.round(w*2),1)}}b.globalAlpha=.14;b.fillStyle='#2a2238';b.fillRect(CXT-110,112,230,22);b.globalAlpha=1;
+ // 前景灌木：深色，框住画面下沿
+ for(let i=0;i<22;i++){const x=-4+rnd()*128,y=160+rnd()*24,r=10+rnd()*10;blob(x,y,r,i%3?'#274c25':'#32602c')}
+ for(let i=0;i<14;i++){const x=CXT+80+rnd()*(W-CXT-60),y=164+rnd()*18,r=9+rnd()*8;blob(x,y,r,i%3?'#274c25':'#32602c')}
+ for(let i=0;i<420;i++){const x=rnd()<.6?rnd()*130:CXT+80+rnd()*(W-CXT-70),y=158+rnd()*22;const px=b.getImageData(Math.max(0,Math.min(W-1,x|0)),Math.min(H-1,y|0),1,1).data;if(px[1]>px[0]&&px[1]<120)R2(x,y,2,2,['#3f7336','#1d3d20','#4f8038'][(rnd()*3)|0])}for(let i=0;i<10;i++)R2(rnd()*110,162+rnd()*16,2,1,PAL[2])
  // 树冠内部的暗处：一层暖褐色的叶子
  for(let i=0;i<2200;i++){const x=(rnd()*2-1)*RXC*.88,y=(rnd()*2-1)*RYC*.86,a=Math.atan2(y/RYC,x/RXC),rm=1+.1*Math.sin(3*a+.5)+.07*Math.sin(5*a+1.2);if((x/RXC)**2+(y/RYC)**2>rm*rm*.74)continue;R2(CXT+x,CY+y,rnd()<.5?3:2,2,['#a85a1a','#b8661b','#c9751c'][(rnd()*3)|0])}
  // 树干与枝
@@ -58,8 +60,8 @@ function build(){
   const lx=Math.cos(a)*d,ly=Math.sin(a)*d*.8,x=C.x+lx*C.r,y=C.y+ly*C.r;
   const a2=Math.atan2(y/RYC,x/RXC),rm=1+.1*Math.sin(3*a2+.5)+.07*Math.sin(5*a2+1.2);if((x/RXC)**2+(y/RYC)**2>rm*rm)continue;
   const dx=x/RXC,dy=y/RYC,e=Math.min(1,Math.hypot(dx,dy)),lit=(-dx*.4-dy*.7)*.5+(-lx*.35-ly*.8)*.8+(rnd()-.5)*.25;
-  let c=clamp(Math.round(1.1-lit*2.1+(rnd()-.5)*.7),0,5);
-  if(dx<-.35&&dy>.35&&C.id%2===0&&rnd()<.3)c=lit>.1?6:8;else if(C.id%19===0&&rnd()<.25)c=7;
+  let c=clamp(Math.round(1.0-lit*2.7+(rnd()-.5)*.7),0,5);
+  if(dx<-.35&&dy>.35&&C.id%2===0&&rnd()<.3)c=lit>.1?6:8;else if(C.id%19===0&&rnd()<.12)c=7;
   const l={hx:Math.round(CXT+x),hy:Math.round(CY+y),c,s:rnd()<.7?2:(rnd()<.5?0:1),e:.25+e*.75,k:rnd()*6.28,st:0,x:0,y:0,vx:0,vy:0,ph:0,gy:0,tl:0,dl:0};LV.push(l);BYC[c].push(l)}
 }
 const shape=(l)=>l.s===0?[3,2]:l.s===1?[2,3]:[2,2];
@@ -93,8 +95,9 @@ function drawScene(){
  if(GL>.01){g.globalCompositeOperation='lighter';g.globalAlpha=.13*GL;const q=g.createRadialGradient(CXT,CY,6,CXT,CY,95);q.addColorStop(0,'#ffe9a0');q.addColorStop(.7,'#ffb84a');q.addColorStop(1,'rgba(255,170,60,0)');g.fillStyle=q;g.fillRect(0,0,W,H);g.globalAlpha=GL*.9;g.fillStyle='#fff6c8';for(let i=0;i<26;i++){const l=LV[(i*97+((T>>3)*31))%LV.length];if(l.st===0)g.fillRect(l.hx,l.hy,1,1)}g.globalAlpha=1;g.globalCompositeOperation='source-over'}
  for(let ci=0;ci<PAL.length;ci++){g.fillStyle=PAL[ci];const A=BYC[ci];for(let i=0;i<A.length;i++){const l=A[i];if(l.st===1){const w=Math.sin(l.ph),sh=Math.abs(w)>.6?[3,1]:[3,2];g.fillRect(Math.round(l.x),Math.round(l.y),sh[0],sh[1])}}}
 }
-function draw(){ROT+=.01;upd();drawScene()}
-function fit(){const w=Math.max(220,Math.min(520,Math.round(H*innerWidth/innerHeight)));if(w!==cv.width||!BG){cv.width=w;W=w;CXT=w/2;build()}}
+let VG=null;function vig(){VG=document.createElement('canvas');VG.width=W;VG.height=H;const v=VG.getContext('2d'),q=v.createRadialGradient(W/2,H*.5,H*.45,W/2,H*.5,Math.hypot(W,H)*.52);q.addColorStop(0,'rgba(30,22,44,0)');q.addColorStop(1,'rgba(30,22,44,.34)');v.fillStyle=q;v.fillRect(0,0,W,H)}
+function draw(){ROT+=.01;upd();drawScene();g.drawImage(VG,0,0)}
+function fit(){const w=Math.max(220,Math.min(520,Math.round(H*innerWidth/innerHeight)));if(w!==cv.width||!BG){cv.width=w;W=w;CXT=w/2;build();vig()}}
 const UI={st:'idle',msg:'',hand:null};
 const cam=document.createElement('video');cam.playsInline=true;cam.muted=true;
 function btn(){const b=document.createElement('button');b.id='gb';b.textContent='🖐 手势';b.style.cssText='position:fixed;left:12px;bottom:12px;font:14px/1 system-ui;padding:9px 12px;border-radius:8px;border:2px solid #8a6a42;background:rgba(70,48,24,.8);color:#ffe9b0;cursor:pointer;z-index:5';document.body.appendChild(b);
