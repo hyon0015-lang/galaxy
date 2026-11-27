@@ -1,0 +1,145 @@
+<!doctype html><meta charset=utf-8><title>一棵树</title><meta name=viewport content="width=device-width,initial-scale=1">
+<style>html,body{margin:0;background:#cfd8e6;height:100%;overflow:hidden}canvas{width:100vw;height:100vh;object-fit:contain;image-rendering:pixelated;display:block}</style>
+<canvas id=c width=320 height=180></canvas>
+<script>
+const cv=document.getElementById('c'),g=cv.getContext('2d');let W=320;const H=180;
+let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+const HAND={on:0,x:0,y:0,o:1,dx:0,dy:0};let ROT=0,T=0,USR=0,HV=0,GL=0,FH=0,CXT=160,BG=null,LV=[],BYC=[];
+const PAL=['#ffd84a','#f9c22e','#f2a31b','#e98a17','#d96d18','#b8541a','#9bb23a','#e0573a'];
+const CY=70,RXC=98,RYC=58,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function build(){
+ seed=7;BG=document.createElement('canvas');BG.width=W;BG.height=H;const b=BG.getContext('2d');
+ const R2=(x,y,w,h,c)=>{b.fillStyle=c;b.fillRect(Math.round(x),Math.round(y),w,h)};
+ const blob=(cx,cy,r,c,sy)=>{for(let y=-r;y<=r;y++){const w=Math.sqrt(Math.max(0,r*r-y*y))*(sy||1);R2(cx-w,cy+y*(sy?1:1),w*2,1,c)}};
+ const mix=(a,c,t)=>{const p=s=>[1,3,5].map(i=>parseInt(s.substr(i,2),16)),A=p(a),B=p(c);return'#'+A.map((v,i)=>Math.round(v+(B[i]-v)*t).toString(16).padStart(2,'0')).join('')};
+ for(let y=0;y<132;y++)R2(0,y,W,1,mix('#c3d0e2','#ece7db',Math.min(1,y/110)));
+ // 远处绿树（右）
+ for(let i=0;i<14;i++){const x=CXT+60+rnd()*(W-CXT-40),y=34+rnd()*60,r=14+rnd()*14;blob(x,y,r,['#8fae4a','#a4bf55','#7f9c3e'][i%3])}
+ for(let i=0;i<10;i++){const x=CXT+80+rnd()*(W-CXT),y=26+rnd()*40;blob(x,y,10+rnd()*8,'#b7c866')}
+ // 左房子
+ const house=(x0,x1,y0,wall,roof,rh)=>{R2(x0,y0,x1-x0,124-y0,wall);for(let y=0;y<rh;y++){const ins=Math.round((rh-y)*.9);R2(x0-3+ins,y0-rh+y,(x1-x0)+6-ins*2,1,y%3===2?mix(roof,'#000000',.18):roof)}
+  for(let x=x0+7;x<x1-8;x+=15)for(let y=y0+8;y<118;y+=24){R2(x,y,8,13,'#5d5448');R2(x+1,y+1,6,11,'#7d8a96');R2(x+3,y+1,1,11,'#5d5448');R2(x-1,y+13,10,2,'#cdb98c')}};
+ house(-4,CXT-62,58,'#e7d3a0','#5d5858',20);
+ house(CXT-70,CXT+70,50,'#dcc08f','#4f4a4c',16);
+ house(CXT+62,CXT+132,76,'#ecdcb4','#76503f',12);
+ b.globalAlpha=.42;b.fillStyle='#d9dfe7';b.fillRect(0,0,W,124);b.globalAlpha=1;
+ // 围墙
+ R2(0,114,W,20,'#b8b5ad');R2(0,114,W,2,'#d3d0c8');for(let x=0;x<W;x+=26)R2(x,116,1,18,'#a29f97');
+ R2(0,132,W,2,'#8e8b84');
+ // 地面（鹅卵石）
+ for(let y=134;y<H;y++)R2(0,y,W,1,mix('#aaa08d','#8f8672',(y-134)/46));
+ for(let i=0;i<900;i++){const x=rnd()*W,y=134+rnd()*46;R2(x,y,2,1,rnd()<.5?'#bdb39f':'#8b8270')}
+ // 灌木
+ for(let i=0;i<16;i++){const x=rnd()*120,y=158+rnd()*22,r=9+rnd()*8;blob(x,y,r,i%2?'#3f6b34':'#4f7c3a')}
+ for(let i=0;i<14;i++){const x=CXT+66+rnd()*(W-CXT-60),y=162+rnd()*18,r=8+rnd()*7;blob(x,y,r,i%2?'#3f6b34':'#4f7c3a')}
+ for(let i=0;i<60;i++){R2(rnd()*120,150+rnd()*30,2,1,'#6f9a4a')}
+ // 树干与枝
+ const ln=(x0,y0,x1,y1,w,c)=>{const n=Math.max(Math.abs(x1-x0),Math.abs(y1-y0));for(let i=0;i<=n;i++){const x=x0+(x1-x0)*i/n,y=y0+(y1-y0)*i/n;R2(x,y,w,w,c)}};
+ for(let y=96;y<=134;y++){const f=Math.max(0,(y-124))*.6,wd=7+f;R2(CXT-wd/2,y,wd,1,'#4a3524');R2(CXT-wd/2,y,1,1,'#6a4c32');R2(CXT+wd/2-1,y,1,1,'#33241a')}
+ const BR=[[-80,40],[-60,22],[-30,12],[0,8],[34,14],[64,26],[84,44],[-90,64],[92,66],[-50,52],[50,50]];
+ BR.forEach(([dx,y])=>{ln(CXT,100,CXT+dx,y,2,'#4a3524');ln(CXT,100,CXT+dx*.6,100-(100-y)*.6,3,'#4a3524')});
+ // 地上落叶地毯
+ for(let i=0;i<1100;i++){const a=rnd()*6.283,d=Math.sqrt(rnd()),x=CXT+Math.cos(a)*d*(130+rnd()*30),y=152+Math.sin(a)*d*26;if(y>132){R2(x,y,rnd()<.5?3:2,2,PAL[(rnd()*5)|0])}}
+ for(let i=0;i<80;i++)R2(rnd()*W,138+rnd()*40,3,2,PAL[(rnd()*4)|0]);
+ // 树叶
+ LV=[];BYC=PAL.map(()=>[]);
+ for(let i=0;i<5200;i++){let x,y,ok=0;for(let k=0;k<12&&!ok;k++){x=(rnd()*2-1)*RXC;y=(rnd()*2-1)*RYC;const a=Math.atan2(y/RYC,x/RXC),rm=1+.1*Math.sin(3*a+.5)+.07*Math.sin(5*a+1.2),q=(x/RXC)**2+(y/RYC)**2;if(q<rm*rm)ok=1}
+  const dx=x/RXC,dy=y/RYC,e=Math.min(1,Math.hypot(dx,dy)),lit=-dx*.5-dy*.7+rnd()*.5;
+  let c=lit>.35?0:lit>0?1:lit>-.35?2:lit>-.7?3:4;if(dy>.3&&dx<-.1&&rnd()<.45)c=6;if(rnd()<.04)c=7;if(rnd()<.05)c=5;
+  const l={hx:Math.round(CXT+x),hy:Math.round(CY+y),c,s:(rnd()*3)|0,e:.25+e*.75,k:rnd()*6.28,st:0,x:0,y:0,vx:0,vy:0,ph:0,gy:0,tl:0,dl:0};LV.push(l);BYC[c].push(l)}
+}
+const shape=(l)=>l.s===0?[3,3]:l.s===1?[4,3]:[3,2];
+function detach(l,vx,vy){l.st=1;l.x=l.hx;l.y=l.hy;l.vx=vx*.6+(rnd()-.5)*.5;l.vy=-.15+rnd()*.25;l.ph=rnd()*6.28;l.gy=Math.max(l.y+12,134+rnd()*44)}
+function burst(){let n=0;for(let i=0;i<LV.length&&n<170;i++){const l=LV[(rnd()*LV.length)|0];if(l.st===0&&!l.dl){l.dl=1+(rnd()*90|0);n++}}}
+function upd(){
+ T++;const on=HAND.on,fist=on&&HAND.o<.3,spd=on?Math.hypot(HAND.dx,HAND.dy)*W:0;
+ const tv=on?clamp(HAND.dx*W*.05,-1.5,1.5):0;HV+=(tv-HV)*.2;HV*=.97;
+ GL+=((fist?1:0)-GL)*.04;if(fist)FH++;else{if(FH>40)burst();FH=0}
+ const hx=HAND.x,hy=HAND.y,R=20+spd*.6,pr=Math.min(.1,spd*.005);
+ if(T%38===0){for(let k=0;k<4;k++){const l=LV[(rnd()*LV.length)|0];if(l.st===0&&l.e>.6){detach(l,0,0);break}}}
+ for(let i=0;i<LV.length;i++){const l=LV[i];
+  if(l.st===0){
+   if(l.dl&&--l.dl===0){detach(l,(rnd()-.4)*.8,0);continue}
+   if(on&&!fist&&spd>.7){const dx=l.hx-hx,dy=l.hy-hy;if(dx*dx+dy*dy<R*R&&rnd()<pr){detach(l,HAND.dx*W*.05,HAND.dy*W*.03);USR++}}
+  }else if(l.st===1){
+   l.ph+=.06+Math.abs(l.vx)*.03;
+   if(on&&!fist){const dx=l.x-hx,dy=l.y-hy;if(dx*dx+dy*dy<R*R*2.2)l.vx+=(HAND.dx*W*.05-l.vx)*.08}
+   l.vx+=(Math.sin(l.ph)*.16+HV*.4+.012-l.vx)*.035;l.vy+=(.26+.1*Math.cos(l.ph*1.3)-l.vy)*.05;
+   l.x+=l.vx;l.y+=l.vy;
+   if(l.y>=l.gy){l.st=2;l.x=Math.round(clamp(l.x,2,W-4));l.y=Math.round(l.y);l.tl=900+rnd()*1600}
+  }else if(l.st===2){if(--l.tl<=0)l.st=0}
+ }
+ if(USR>25&&!GDONE){GDONE=1;say('')}
+}
+function drawScene(){
+ g.drawImage(BG,0,0);
+ for(let ci=0;ci<PAL.length;ci++){g.fillStyle=PAL[ci];const A=BYC[ci];for(let i=0;i<A.length;i++){const l=A[i];if(l.st===2){const s=shape(l);g.fillRect(l.x,l.y,s[0],s[1])}}}
+ const sw=Math.sin(T*.018)*.5;
+ for(let ci=0;ci<PAL.length;ci++){g.fillStyle=PAL[ci];const A=BYC[ci];for(let i=0;i<A.length;i++){const l=A[i];if(l.st===0){const s=shape(l),o=Math.round((sw*Math.sin(l.k+T*.02)+HV*1.6)*l.e);g.fillRect(l.hx+o,l.hy,s[0],s[1])}}}
+ if(GL>.01){g.globalCompositeOperation='lighter';g.globalAlpha=.13*GL;const q=g.createRadialGradient(CXT,CY,6,CXT,CY,95);q.addColorStop(0,'#ffe9a0');q.addColorStop(.7,'#ffb84a');q.addColorStop(1,'rgba(255,170,60,0)');g.fillStyle=q;g.fillRect(0,0,W,H);g.globalAlpha=GL*.9;g.fillStyle='#fff6c8';for(let i=0;i<26;i++){const l=LV[(i*97+((T>>3)*31))%LV.length];if(l.st===0)g.fillRect(l.hx,l.hy,1,1)}g.globalAlpha=1;g.globalCompositeOperation='source-over'}
+ for(let ci=0;ci<PAL.length;ci++){g.fillStyle=PAL[ci];const A=BYC[ci];for(let i=0;i<A.length;i++){const l=A[i];if(l.st===1){const w=Math.sin(l.ph),sh=Math.abs(w)>.6?[3,1]:[3,2];g.fillRect(Math.round(l.x),Math.round(l.y),sh[0],sh[1])}}}
+}
+function draw(){ROT+=.01;upd();drawScene()}
+function fit(){const w=Math.max(220,Math.min(520,Math.round(H*innerWidth/innerHeight)));if(w!==cv.width||!BG){cv.width=w;W=w;CXT=w/2;build()}}
+const UI={st:'idle',msg:'',hand:null};
+const cam=document.createElement('video');cam.playsInline=true;cam.muted=true;
+function btn(){const b=document.createElement('button');b.id='gb';b.textContent='🖐 手势';b.style.cssText='position:fixed;left:12px;bottom:12px;font:14px/1 system-ui;padding:9px 12px;border-radius:8px;border:2px solid #8a6a42;background:rgba(70,48,24,.8);color:#ffe9b0;cursor:pointer;z-index:5';document.body.appendChild(b);
+ const m=document.createElement('div');m.id='gm';m.style.cssText='position:fixed;left:12px;bottom:56px;font:13px system-ui;color:#5a4630;opacity:.85;z-index:5;text-shadow:0 1px 2px #000';document.body.appendChild(m);
+ const pv=document.createElement('canvas');pv.id='gp';pv.width=240;pv.height=180;pv.style.display='none';document.body.appendChild(pv);const ov=document.createElement('canvas');ov.id='go';ov.style.cssText='position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:4';document.body.appendChild(ov);
+ b.onclick=startHand}
+function say(s){UI.msg=s;const m=document.getElementById('gm');if(m)m.textContent=s}
+function load(src){return new Promise((ok,no)=>{const e=document.createElement('script');e.src=src;e.onload=ok;e.onerror=()=>no(new Error('load '+src));document.head.appendChild(e)})}
+let hands=null,busy=0,lost=0;const BLOBS={};
+let GD=0,GDONE=0;function drawCore(ox,c,px,py,fo,al){const sx=v=>Math.round(v/c)*c,cx=sx(px),cy=sx(py),k=1-fo,rr=(2+fo*4)*c,col=k>.5?'#ffd98a':'#bfe6ff',n=8;ox.globalAlpha=al;ox.fillStyle=col;for(let i=0;i<n;i++){const t=i/n*6.283+ROT;ox.fillRect(sx(cx+Math.cos(t)*rr),sx(cy+Math.sin(t)*rr),c,c)}ox.fillStyle='#fff';ox.fillRect(cx,cy,c,c);ox.fillStyle=k>.5?'#ffb84a':'#ff9ac8';[[1,0],[-1,0],[0,1],[0,-1]].forEach(([a,b])=>ox.fillRect(cx+a*c,cy+b*c,c,c));ox.globalAlpha=1}
+let omin=99,omax=0,fx=null,fy=null,fo=null,lastx=null,lasty=null,GR=0;const TR=[];
+const mapX=x=>Math.max(-.1,Math.min(1.1,(1-x-.5)/.7+.5)),mapY=y=>Math.max(-.1,Math.min(1.1,(y-.5)/.7+.5));
+const adapt=(p,x,k)=>p+(x-p)*Math.min(.85,.2+Math.abs(x-p)*k); // 慢时稳、快时跟手
+function impulse(dx){YV=Math.max(-.09,Math.min(.09,YV+dx*3.2))}
+function feed(lm){ // lm: 21 个点，x,y 0..1（未镜像）
+ const d=(a,b)=>Math.hypot(lm[a].x-lm[b].x,lm[a].y-lm[b].y),palm=d(0,9)||.001;
+ const op=[8,12,16,20].reduce((q,i)=>q+d(0,i)/palm,0)/4; // 四指指尖到手腕 / 手掌大小，不含拇指
+ omin=Math.min(op,omin+.004);omax=Math.max(op,omax-.004); // 自动校准
+ const lo=Math.min(omin,1.35),hi=Math.max(omax,1.8),rng=Math.max(.5,hi-lo);
+ let o=Math.max(0,Math.min(1,(op-lo)/rng));o=o<.2?0:o>.8?1:(o-.2)/.6;
+ const x=mapX(lm[9].x),y=mapY(lm[9].y);
+ if(fx===null){fx=x;fy=y;fo=o;lastx=x;lasty=y}
+ fx=adapt(fx,x,14);fy=adapt(fy,y,14);fo=adapt(fo,o,3);
+ const dx=fx-lastx,dy=fy-lasty;lastx=fx;lasty=fy;
+ if(fo<.3)GR=1;else if(fo>.55)GR=0; // 滞回：握拳=抓住，张开=松手
+ HAND.on=1;HAND.x=fx*W;HAND.y=fy*H;HAND.o=fo;HAND.dx=dx;HAND.dy=dy;
+ say(fo<.3?'握拳 · 树在屏息':'')}
+async function startHand(){const b=document.getElementById('gb');if(UI.st==='on'){stopHand();return}
+ try{say('请求摄像头…');const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:false});cam.srcObject=s;await cam.play();
+  say('加载手势识别…');await load('../mp/hands.js');
+  for(const f of ['hands.binarypb','hand_landmark_lite.tflite','hands_solution_packed_assets.data']){const b64=await (await fetch('../mp/'+f+'.b64.txt')).text(),bin=atob(b64.trim()),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);BLOBS[f]=URL.createObjectURL(new Blob([u],{type:'application/octet-stream'}))}
+  hands=new Hands({locateFile:f=>BLOBS[f]||'../mp/'+f});hands.setOptions({maxNumHands:1,modelComplexity:0,minDetectionConfidence:.6,minTrackingConfidence:.5,selfieMode:false});
+  hands.onResults(window.__onres=r=>{busy=0;const ov=document.getElementById('go'),dpr=Math.min(2,devicePixelRatio||1),w=innerWidth,h=innerHeight;if(ov.width!==w*dpr||ov.height!==h*dpr){ov.width=w*dpr;ov.height=h*dpr}
+   const ox=ov.getContext('2d');ox.setTransform(dpr,0,0,dpr,0,0);ox.clearRect(0,0,w,h);
+   if(r.multiHandLandmarks&&r.multiHandLandmarks[0]){const L=r.multiHandLandmarks[0];
+    lost=0;feed(L);
+    const c=Math.max(3,Math.round(h/140)),sx=v=>Math.round(v/c)*c,px=fx*w,py=fy*h,edge=Math.min(fx,1-fx,fy,1-fy)<.1,al=edge?.5:1;
+    TR.push([sx(px),sx(py)]);if(TR.length>8)TR.shift();
+    TR.forEach((q,i)=>{if(i===TR.length-1)return;const f=i/TR.length;ox.fillStyle='rgba(255,210,230,'+(.15+f*.5)+')';if((i&1)||f>.5)ox.fillRect(q[0],q[1],c,c)});
+    drawCore(ox,c,px,py,fo,al);
+   }else{fx=null;lastx=null;lasty=null;GR=0;TR.length=0;
+    HAND.on=0;if(!GDONE){const c=Math.max(3,Math.round(h/140)),t=(performance.now()/1000)%3.6,e=t<.4?0:t<2.6?(t-.4)/2.2:1,gx=.28+.44*(e*e*(3-2*e));
+     drawCore(ox,c*1.5|0,gx*w,.36*h,1,.7);ox.fillStyle='rgba(255,246,226,.85)';ox.font=Math.round(h/34)+'px sans-serif';ox.textAlign='center';ox.fillText('手慢慢扫过树，风就来了',w/2,h*.36+h*.14)}
+if(++lost>20){say('没看到手 · 把手举到镜头前')}}});
+  await hands.initialize();UI.st='on';b.textContent='✋ 关闭手势';say('把手举到镜头前');
+  (function pump(){if(UI.st!=='on')return;if(!busy&&cam.readyState>=2){busy=1;hands.send({image:cam}).catch(()=>{busy=0})}requestAnimationFrame(pump)})();
+ }catch(e){UI.st='idle';say(e&&e.name==='NotAllowedError'?'没有摄像头权限，用手指拖动也可以':'手势用不了（'+(e&&e.message||e)+'），用手指拖动也可以')}}
+function stopHand(){UI.st='idle';try{cam.srcObject&&cam.srcObject.getTracks().forEach(t=>t.stop())}catch(e){}document.getElementById('gb').textContent='🖐 手势';{const o=document.getElementById('go');o.getContext('2d').clearRect(0,0,o.width,o.height)}TG=1;TP=.38;say('')}
+
+let PD=0,pl=null;
+const pxy=e=>{const r=cv.getBoundingClientRect(),sc=Math.min(r.width/W,r.height/H),ox=r.left+(r.width-W*sc)/2,oy=r.top+(r.height-H*sc)/2;return[(e.clientX-ox)/sc,(e.clientY-oy)/sc,r]};
+cv.style.touchAction='none';
+cv.addEventListener('pointerdown',e=>{if(UI.st==='on')return;PD=1;const[x,y]=pxy(e);pl=[e.clientX,e.clientY];Object.assign(HAND,{on:1,x,y,dx:0,dy:0,o:e.pointerType==='touch'?1:0})});
+cv.addEventListener('pointermove',e=>{if(UI.st==='on')return;if(e.pointerType==='touch'&&!PD)return;const[x,y,r]=pxy(e);if(pl){HAND.dx=(e.clientX-pl[0])/r.width;HAND.dy=(e.clientY-pl[1])/r.height}pl=[e.clientX,e.clientY];HAND.x=x;HAND.y=y;HAND.on=1;HAND.o=PD&&e.pointerType!=='touch'?0:1});
+addEventListener('pointerup',e=>{if(UI.st==='on')return;PD=0;if(e.pointerType==='touch'){HAND.on=0;pl=null}else HAND.o=1});
+cv.addEventListener('pointerleave',()=>{if(UI.st==='on')return;HAND.on=0;pl=null});
+btn();fit();addEventListener('resize',fit);
+window.__wind=(x,y,dx,dy,o)=>Object.assign(HAND,{on:1,x,y,dx,dy,o});window.__off=()=>{HAND.on=0};window.__burst=burst;window.__st=()=>({USR,GL,att:LV.filter(l=>l.st===0).length,fall:LV.filter(l=>l.st===1).length,land:LV.filter(l=>l.st===2).length});
+if(location.search.indexOf('still')<0){(function loop(){draw();requestAnimationFrame(loop)})()}else{for(let i=0;i<+(location.search.split('=')[1]||5);i++)draw()}
+
+(function(){const de=document.documentElement;if(!(de.requestFullscreen||de.webkitRequestFullscreen))return;const b=document.createElement('button');b.textContent='⛶';b.title='全屏';b.style.cssText='position:fixed;right:12px;top:12px;font:18px/1 system-ui;padding:6px 10px;border-radius:8px;border:2px solid #8a6a42;background:rgba(42,34,80,.8);color:#ffe9a0;cursor:pointer;z-index:5';b.onclick=()=>{const fs=document.fullscreenElement||document.webkitFullscreenElement;if(fs){(document.exitFullscreen||document.webkitExitFullscreen).call(document)}else{(de.requestFullscreen||de.webkitRequestFullscreen).call(de)}};document.body.appendChild(b)})();
+</script>
