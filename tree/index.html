@@ -4,11 +4,11 @@
 <script>
 const cv=document.getElementById('c'),g=cv.getContext('2d');let W=320;const H=180;
 let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
-const HAND={on:0,x:0,y:0,o:1,dx:0,dy:0};let GU=0,GDIR=1,GWAIT=420,BIRD=null,BWAIT=1500,ROT=0,T=0,USR=0,HV=0,GL=0,FH=0,CXT=160,BG=null,LV=[],BYC=[];
+const HAND={on:0,x:0,y:0,o:1,dx:0,dy:0};let CAUGHT=null,HELD=0,GLV=[],GU=0,GDIR=1,GWAIT=420,BIRD=null,BWAIT=1500,ROT=0,T=0,USR=0,HV=0,GL=0,FH=0,CXT=160,BG=null,LV=[],BYC=[];
 const PAL=['#fbd650','#f6bc2b','#efa220','#e48a1a','#cf7019','#a85418','#b8c24a','#e2713a','#82993a','#7d3f16','#fff3b0'];
 const CY=66,RXC=88,RYC=56,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function build(){
- seed=7;BG=document.createElement('canvas');BG.width=W;BG.height=H;const b=BG.getContext('2d');
+ seed=7;GLV=[];BG=document.createElement('canvas');BG.width=W;BG.height=H;const b=BG.getContext('2d');
  const R2=(x,y,w,h,c)=>{b.fillStyle=c;b.fillRect(Math.round(x),Math.round(y),w,h)};
  const blob=(cx,cy,r,c,sy)=>{for(let y=-r;y<=r;y++){const w=Math.sqrt(Math.max(0,r*r-y*y))*(sy||1);R2(cx-w,cy+y,w*2,1,c)}};
  const mix=(a,c,t)=>{const p=s=>[1,3,5].map(i=>parseInt(s.substr(i,2),16)),A=p(a),B=p(c);return'#'+A.map((v,i)=>Math.round(v+(B[i]-v)*t).toString(16).padStart(2,'0')).join('')};
@@ -34,6 +34,7 @@ function build(){
  for(let i=0;i<350;i++){R2(rnd()*W,134+rnd()*46,2,1,rnd()<.5?'#bdb39f':'#8b8270')}
  // 长椅
  
+ for(let i=0;i<300;i++){const a=rnd()*6.283,d=Math.sqrt(rnd());GLV.push({x:CXT+Math.cos(a)*d*(110+rnd()*30),y:142+Math.sin(a)*d*24,c:1+((rnd()*rnd()*4)|0),vx:0,hp:0,w:rnd()<.5?3:2})}
  // 小蓝架子和橙色线圈（照片里树下的小东西）
  R2(CXT+2,156,2,14,'#27406e');R2(CXT-3,153,12,3,'#e8e2d0');R2(CXT-1,157,5,6,'#e0701c');R2(CXT,158,3,4,'#f08a2a');
  // 地上落叶地毯
@@ -74,11 +75,20 @@ function upd(){
  if(--GWAIT<=0){GU=1;GDIR=rnd()<.78?1:-1;GWAIT=520+rnd()*620}
  GU*=.985;if(GU>.45&&T%2===0){const l=LV[(rnd()*LV.length)|0];if(l.st===0&&l.e>.5)detach(l,GDIR*.9,0)}
  if(GU>.02)HV+=GU*GDIR*.012;
- if(!BIRD&&--BWAIT<=0){const d=rnd()<.5?1:-1;BIRD={x:d>0?-8:W+8,y:12+rnd()*30,vx:d*(.45+rnd()*.2),ph:0,y0:0};BIRD.y0=BIRD.y;BWAIT=2400+rnd()*2400}
- if(BIRD){BIRD.x+=BIRD.vx;BIRD.ph+=.22;BIRD.y=BIRD.y0+Math.sin(BIRD.ph*.35)*3-(BIRD.x*0.02);if(BIRD.x<-12||BIRD.x>W+12)BIRD=null}
+ if(!BIRD&&--BWAIT<=0){const perch=rnd()<.5,d=rnd()<.5?1:-1;BIRD=perch?{m:0,x:W+8,y:34+rnd()*10,t:0,sx:0,sy:0,px:W-44,py:86,ph:0}:{m:3,x:d>0?-8:W+8,y:12+rnd()*30,vx:d*(.45+rnd()*.2),ph:0,y0:0};if(!perch)BIRD.y0=BIRD.y;else{BIRD.sx=BIRD.x;BIRD.sy=BIRD.y};BWAIT=2400+rnd()*2400}
+ if(BIRD){const B=BIRD;B.ph=(B.ph||0)+.22;
+  if(B.m===3){B.x+=B.vx;B.y=B.y0+Math.sin(B.ph*.35)*3-(B.x*0.02);if(B.x<-12||B.x>W+12)BIRD=null}
+  else if(B.m===0){B.t++;const k=Math.min(1,B.t/190),e=1-(1-k)*(1-k);B.x=B.sx+(B.px-B.sx)*e;B.y=B.sy+(B.py-B.sy)*e-Math.sin(k*3.14)*10;if(k>=1){B.m=1;B.t=0;B.x=B.px;B.y=B.py}}
+  else if(B.m===1){B.t++;if(B.t>420+((B.px*7)%200)){B.m=2;B.t=0}}
+  else{B.x+=.7;B.y-=.32;if(B.x>W+12||B.y<-8)BIRD=null}}
  const on=HAND.on,fist=on&&HAND.o<.3,spd=on?Math.hypot(HAND.dx,HAND.dy)*W:0;
  const tv=on?clamp(HAND.dx*W*.05,-1.5,1.5):0;HV+=(tv-HV)*.2;HV*=.97;
- GL+=((fist?1:0)-GL)*.04;if(fist)FH++;else{if(FH>40)burst();FH=0}
+ GL+=((fist?1:0)-GL)*.04;if(fist)FH++;else{if(FH>40&&!CAUGHT)burst();FH=0}
+ const hx0=HAND.x,hy0=HAND.y;
+ if(on&&fist&&!CAUGHT){let best=null,bd=18*18;for(let i=0;i<LV.length;i++){const l=LV[i];if(l.st!==1)continue;const dx=l.x-hx0,dy=l.y-hy0,dd=dx*dx+dy*dy;if(dd<bd){bd=dd;best=l}}if(best){CAUGHT=best;best.st=4;best.ph=0}}
+ if(CAUGHT){CAUGHT.ph+=.06;if(!on||HAND.o>.55){const l=CAUGHT;CAUGHT=null;l.st=1;l.x=hx0;l.y=hy0+3;l.vx=0;l.vy=.05;l.gy=Math.max(l.y+14,150+rnd()*26);FH=0}}
+ if(GU>.25){for(let i=0;i<GLV.length;i++){const l=GLV[i];if(!l.vx&&rnd()<.012*GU){l.vx=GDIR*(.5+rnd()*.9);l.hp=1}}}
+ for(let i=0;i<GLV.length;i++){const l=GLV[i];if(l.vx){l.x+=l.vx;l.vx*=.95;l.hp=Math.abs(l.vx)>.25?1+Math.sin(T*.5+i)*0:0;if(Math.abs(l.vx)<.06){l.vx=0;l.hp=0}if(l.x<2)l.x=2;if(l.x>W-34)l.x=W-34}}
  const hx=HAND.x,hy=HAND.y,R=20+spd*.6,pr=Math.min(.05,spd*.0025);
  if(T%46===0){for(let k=0;k<4;k++){const l=LV[(rnd()*LV.length)|0];if(l.st===0&&l.e>.6){detach(l,0,0);break}}}
  for(let i=0;i<LV.length;i++){const l=LV[i];
@@ -97,6 +107,7 @@ function upd(){
 }
 function drawScene(){
  g.drawImage(BG,0,0);
+ for(let i=0;i<GLV.length;i++){const l=GLV[i];g.fillStyle=PAL[l.c];g.fillRect(Math.round(l.x),Math.round(l.y-l.hp),l.w,2)}
  for(let ci=0;ci<PAL.length;ci++){g.fillStyle=PAL[ci];const A=BYC[ci];for(let i=0;i<A.length;i++){const l=A[i];if(l.st===2){const s=shape(l);g.fillRect(l.x,l.y,s[0],s[1])}}}
  const sw=Math.sin(T*.018)*.5;
  for(let ci=0;ci<PAL.length;ci++){g.fillStyle=PAL[ci];const A=BYC[ci];for(let i=0;i<A.length;i++){const l=A[i];if(l.st===0){const s=shape(l),o=Math.round((sw*Math.sin(l.k+T*.02)+HV*1.6+GU*GDIR*(1.1+1.2*Math.sin(T*.07-l.hx*.04)))*l.e);g.fillRect(l.hx+o,l.hy,s[0],s[1])}}}
@@ -104,8 +115,9 @@ function drawScene(){
  for(let ci=0;ci<PAL.length;ci++){g.fillStyle=PAL[ci];const A=BYC[ci];for(let i=0;i<A.length;i++){const l=A[i];if(l.st===1){const w=Math.sin(l.ph),sh=Math.abs(w)>.6?[3,1]:[3,2];g.fillRect(Math.round(l.x),Math.round(l.y),sh[0],sh[1])}}}
 }
 let VG=null;function vig(){VG=document.createElement('canvas');VG.width=W;VG.height=H;const v=VG.getContext('2d'),q=v.createRadialGradient(W/2,H*.5,H*.45,W/2,H*.5,Math.hypot(W,H)*.52);q.addColorStop(0,'rgba(30,22,44,0)');q.addColorStop(1,'rgba(30,22,44,.34)');v.fillStyle=q;v.fillRect(0,0,W,H)}
-function drawBird(){if(!BIRD)return;const x=Math.round(BIRD.x),y=Math.round(BIRD.y),up=Math.sin(BIRD.ph)>0;g.fillStyle='#3e3e48';g.fillRect(x,y,3,1);g.fillRect(x+(BIRD.vx>0?3:-1),y,1,1);if(up){g.fillRect(x,y-1,1,1);g.fillRect(x+2,y-1,1,1);g.fillRect(x-1,y-2,1,1);g.fillRect(x+3,y-2,1,1)}else{g.fillRect(x-1,y+1,1,1);g.fillRect(x+3,y+1,1,1);g.fillRect(x-2,y+2,1,1);g.fillRect(x+4,y+2,1,1)}}
-function draw(){ROT+=.01;upd();drawScene();drawBird()}
+function drawHeld(){if(!CAUGHT)return;const x=Math.round(HAND.x),y=Math.round(HAND.y+Math.sin(CAUGHT.ph*2)*1);g.fillStyle='rgba(90,44,14,.85)';g.fillRect(x-3,y-2,7,5);g.fillStyle='#ffd23f';g.fillRect(x-2,y-1,5,3);g.fillStyle='#fff3b0';g.fillRect(x-1,y-1,2,1);g.fillStyle='#e48a1a';g.fillRect(x+2,y+1,1,1);g.fillStyle='#ffffff';for(let i=0;i<6;i++){const a=CAUGHT.ph*1.3+i*1.047,r=7+Math.sin(CAUGHT.ph*3+i)*1.5;g.fillRect(Math.round(x+Math.cos(a)*r),Math.round(y+Math.sin(a)*r*.8),1,1)}}
+function drawBird(){if(!BIRD)return;if(BIRD.m===1){const x=Math.round(BIRD.x),y=Math.round(BIRD.y),t=(BIRD.t>>5)%7===3?1:0;g.fillStyle='#3e3e48';g.fillRect(x,y-2,3,2);g.fillRect(x+3,y-3-t,1,2);g.fillRect(x-2,y-1,2,1);g.fillRect(x,y,1,1);g.fillRect(x+2,y,1,1);g.fillStyle='#b8b8c0';g.fillRect(x+4,y-3-t,1,1);return}const x=Math.round(BIRD.x),y=Math.round(BIRD.y),up=Math.sin(BIRD.ph)>0;g.fillStyle='#3e3e48';g.fillRect(x,y,3,1);g.fillRect(x+(BIRD.vx>0?3:-1),y,1,1);if(up){g.fillRect(x,y-1,1,1);g.fillRect(x+2,y-1,1,1);g.fillRect(x-1,y-2,1,1);g.fillRect(x+3,y-2,1,1)}else{g.fillRect(x-1,y+1,1,1);g.fillRect(x+3,y+1,1,1);g.fillRect(x-2,y+2,1,1);g.fillRect(x+4,y+2,1,1)}}
+function draw(){ROT+=.01;upd();drawScene();drawBird();drawHeld()}
 function fit(){const w=Math.max(220,Math.min(520,Math.round(H*innerWidth/innerHeight)));if(w!==cv.width||!BG){cv.width=w;W=w;CXT=Math.round(w*.45);build();vig()}}
 const UI={st:'idle',msg:'',hand:null};
 const cam=document.createElement('video');cam.playsInline=true;cam.muted=true;
@@ -159,12 +171,13 @@ function stopHand(){UI.st='idle';try{cam.srcObject&&cam.srcObject.getTracks().fo
 let PD=0,pl=null;
 const pxy=e=>{const r=cv.getBoundingClientRect(),sc=Math.min(r.width/W,r.height/H),ox=r.left+(r.width-W*sc)/2,oy=r.top+(r.height-H*sc)/2;return[(e.clientX-ox)/sc,(e.clientY-oy)/sc,r]};
 cv.style.touchAction='none';
-cv.addEventListener('pointerdown',e=>{if(UI.st==='on')return;PD=1;const[x,y]=pxy(e);pl=[e.clientX,e.clientY];Object.assign(HAND,{on:1,x,y,dx:0,dy:0,o:e.pointerType==='touch'?1:0})});
-cv.addEventListener('pointermove',e=>{if(UI.st==='on')return;if(e.pointerType==='touch'&&!PD)return;const[x,y,r]=pxy(e);if(pl){HAND.dx=(e.clientX-pl[0])/r.width;HAND.dy=(e.clientY-pl[1])/r.height}pl=[e.clientX,e.clientY];HAND.x=x;HAND.y=y;HAND.on=1;HAND.o=PD&&e.pointerType!=='touch'?0:1});
-addEventListener('pointerup',e=>{if(UI.st==='on')return;PD=0;if(e.pointerType==='touch'){HAND.on=0;pl=null}else HAND.o=1});
+let HT=null,HS=null;
+cv.addEventListener('pointerdown',e=>{if(UI.st==='on')return;PD=1;HELD=0;const[x,y]=pxy(e);pl=[e.clientX,e.clientY];if(e.pointerType==='touch'){HS=[e.clientX,e.clientY];clearTimeout(HT);HT=setTimeout(()=>{HELD=1;HAND.o=0},380)}Object.assign(HAND,{on:1,x,y,dx:0,dy:0,o:e.pointerType==='touch'?1:0})});
+cv.addEventListener('pointermove',e=>{if(UI.st==='on')return;if(e.pointerType==='touch'&&!PD)return;const[x,y,r]=pxy(e);if(pl){HAND.dx=(e.clientX-pl[0])/r.width;HAND.dy=(e.clientY-pl[1])/r.height}pl=[e.clientX,e.clientY];if(e.pointerType==='touch'&&HS&&Math.hypot(e.clientX-HS[0],e.clientY-HS[1])>14&&!HELD){clearTimeout(HT);HS=null}HAND.x=x;HAND.y=y;HAND.on=1;HAND.o=e.pointerType==='touch'?(HELD?0:1):(PD?0:1)});
+addEventListener('pointerup',e=>{if(UI.st==='on')return;PD=0;clearTimeout(HT);HELD=0;if(e.pointerType==='touch'){HAND.on=0;pl=null}else HAND.o=1});
 cv.addEventListener('pointerleave',()=>{if(UI.st==='on')return;HAND.on=0;pl=null});
 btn();fit();addEventListener('resize',fit);
-window.__wind=(x,y,dx,dy,o)=>Object.assign(HAND,{on:1,x,y,dx,dy,o});window.__off=()=>{HAND.on=0};window.__burst=burst;window.__gust=()=>{GU=1;GDIR=1};window.__bird=()=>{BWAIT=0};window.__st=()=>({USR,GL,att:LV.filter(l=>l.st===0).length,fall:LV.filter(l=>l.st===1).length,land:LV.filter(l=>l.st===2).length});
+window.__wind=(x,y,dx,dy,o)=>Object.assign(HAND,{on:1,x,y,dx,dy,o});window.__off=()=>{HAND.on=0};window.__burst=burst;window.__catch=()=>({c:!!CAUGHT});window.__gust=()=>{GU=1;GDIR=1};window.__bird=()=>{BWAIT=0};window.__st=()=>({USR,GL,att:LV.filter(l=>l.st===0).length,fall:LV.filter(l=>l.st===1).length,land:LV.filter(l=>l.st===2).length});
 if(location.search.indexOf('still')<0){(function loop(){draw();requestAnimationFrame(loop)})()}else{for(let i=0;i<+(location.search.split('=')[1]||5);i++)draw()}
 
 (function(){const de=document.documentElement;if(!(de.requestFullscreen||de.webkitRequestFullscreen))return;const b=document.createElement('button');b.textContent='⛶';b.title='全屏';b.style.cssText='position:fixed;right:12px;top:12px;font:18px/1 system-ui;padding:6px 10px;border-radius:8px;border:2px solid #8a6a42;background:rgba(42,34,80,.8);color:#ffe9a0;cursor:pointer;z-index:5';b.onclick=()=>{const fs=document.fullscreenElement||document.webkitFullscreenElement;if(fs){(document.exitFullscreen||document.webkitExitFullscreen).call(document)}else{(de.requestFullscreen||de.webkitRequestFullscreen).call(de)}};document.body.appendChild(b)})();
