@@ -163,19 +163,21 @@ async function startHand(){const b=document.getElementById('gb');if(UI.st==='on'
     HAND.on=0;if(!GDONE){const c=Math.max(3,Math.round(h/140)),t=(performance.now()/1000)%3.6,e=t<.4?0:t<2.6?(t-.4)/2.2:1,gx=.28+.44*(e*e*(3-2*e));
      drawCore(ox,c*1.5|0,gx*w,.36*h,1,.7);ox.fillStyle='rgba(255,246,226,.85)';ox.font=Math.round(h/34)+'px sans-serif';ox.textAlign='center';ox.fillText('手慢慢扫过树，风就来了',w/2,h*.36+h*.14)}
 if(++lost>20){say('没看到手 · 把手举到镜头前')}}});
-  await hands.initialize();UI.st='on';b.textContent='✋ 关闭手势';say('把手举到镜头前');
+  await hands.initialize();UI.st='on';showCard(0);b.textContent='✋ 关闭手势';say('把手举到镜头前');
   (function pump(){if(UI.st!=='on')return;if(!busy&&cam.readyState>=2){busy=1;hands.send({image:cam}).catch(()=>{busy=0})}requestAnimationFrame(pump)})();
- }catch(e){UI.st='idle';say(e&&e.name==='NotAllowedError'?'没有摄像头权限，用手指拖动也可以':'手势用不了（'+(e&&e.message||e)+'），用手指拖动也可以')}}
-function stopHand(){UI.st='idle';try{cam.srcObject&&cam.srcObject.getTracks().forEach(t=>t.stop())}catch(e){}document.getElementById('gb').textContent='🖐 手势';{const o=document.getElementById('go');o.getContext('2d').clearRect(0,0,o.width,o.height)}TG=1;TP=.38;say('')}
+ }catch(e){UI.st='idle';UI.fail=1;showCard(0);say(e&&e.name==='NotAllowedError'?'没有摄像头权限，用手指拖动也可以':'手势用不了（'+(e&&e.message||e)+'），用手指拖动也可以')}}
+function stopHand(){UI.st='idle';showCard(1);try{cam.srcObject&&cam.srcObject.getTracks().forEach(t=>t.stop())}catch(e){}document.getElementById('gb').textContent='🖐 手势';{const o=document.getElementById('go');o.getContext('2d').clearRect(0,0,o.width,o.height)}TG=1;TP=.38;say('')}
 
 let PD=0,pl=null;
 const pxy=e=>{const r=cv.getBoundingClientRect(),sc=Math.min(r.width/W,r.height/H),ox=r.left+(r.width-W*sc)/2,oy=r.top+(r.height-H*sc)/2;return[(e.clientX-ox)/sc,(e.clientY-oy)/sc,r]};
 cv.style.touchAction='none';
 let HT=null,HS=null;
-cv.addEventListener('pointerdown',e=>{if(UI.st==='on')return;PD=1;HELD=0;const[x,y]=pxy(e);pl=[e.clientX,e.clientY];if(e.pointerType==='touch'){HS=[e.clientX,e.clientY];clearTimeout(HT);HT=setTimeout(()=>{HELD=1;HAND.o=0},380)}Object.assign(HAND,{on:1,x,y,dx:0,dy:0,o:e.pointerType==='touch'?1:0})});
-cv.addEventListener('pointermove',e=>{if(UI.st==='on')return;if(e.pointerType==='touch'&&!PD)return;const[x,y,r]=pxy(e);if(pl){HAND.dx=(e.clientX-pl[0])/r.width;HAND.dy=(e.clientY-pl[1])/r.height}pl=[e.clientX,e.clientY];if(e.pointerType==='touch'&&HS&&Math.hypot(e.clientX-HS[0],e.clientY-HS[1])>14&&!HELD){clearTimeout(HT);HS=null}HAND.x=x;HAND.y=y;HAND.on=1;HAND.o=e.pointerType==='touch'?(HELD?0:1):(PD?0:1)});
-addEventListener('pointerup',e=>{if(UI.st==='on')return;PD=0;clearTimeout(HT);HELD=0;if(e.pointerType==='touch'){HAND.on=0;pl=null}else HAND.o=1});
-cv.addEventListener('pointerleave',()=>{if(UI.st==='on')return;HAND.on=0;pl=null});
+cv.addEventListener('pointerdown',e=>{if(UI.st==='on'||!UI.fail)return;PD=1;HELD=0;const[x,y]=pxy(e);pl=[e.clientX,e.clientY];if(e.pointerType==='touch'){HS=[e.clientX,e.clientY];clearTimeout(HT);HT=setTimeout(()=>{HELD=1;HAND.o=0},380)}Object.assign(HAND,{on:1,x,y,dx:0,dy:0,o:e.pointerType==='touch'?1:0})});
+cv.addEventListener('pointermove',e=>{if(UI.st==='on'||!UI.fail)return;if(e.pointerType==='touch'&&!PD)return;const[x,y,r]=pxy(e);if(pl){HAND.dx=(e.clientX-pl[0])/r.width;HAND.dy=(e.clientY-pl[1])/r.height}pl=[e.clientX,e.clientY];if(e.pointerType==='touch'&&HS&&Math.hypot(e.clientX-HS[0],e.clientY-HS[1])>14&&!HELD){clearTimeout(HT);HS=null}HAND.x=x;HAND.y=y;HAND.on=1;HAND.o=e.pointerType==='touch'?(HELD?0:1):(PD?0:1)});
+addEventListener('pointerup',e=>{if(UI.st==='on'||!UI.fail)return;PD=0;clearTimeout(HT);HELD=0;if(e.pointerType==='touch'){HAND.on=0;pl=null}else HAND.o=1});
+cv.addEventListener('pointerleave',()=>{if(UI.st==='on'||!UI.fail)return;HAND.on=0;pl=null});
+(function(){const d=document.createElement('div');d.id='gs';d.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;z-index:6;font:15px/1.7 system-ui;color:#fff;background:rgba(50,34,18,.62);padding:18px 26px;border-radius:14px;backdrop-filter:blur(3px)';d.innerHTML='<div style="margin-bottom:12px">举起手，轻轻扫过，风就来了</div><button style="font:16px/1 system-ui;padding:12px 22px;border-radius:10px;border:2px solid #8a6a42;background:rgba(70,48,24,.85);color:#ffe9b0;cursor:pointer">✋ 开启摄像头</button><div style="margin-top:10px;font-size:12px;opacity:.85">画面只在你的设备上处理，不会上传</div>';d.querySelector('button').onclick=()=>{startHand()};document.body.appendChild(d)})();
+window.showCard=v=>{const d=document.getElementById('gs');if(d)d.style.display=v?'block':'none'};
 btn();fit();addEventListener('resize',fit);
 window.__wind=(x,y,dx,dy,o)=>Object.assign(HAND,{on:1,x,y,dx,dy,o});window.__off=()=>{HAND.on=0};window.__burst=burst;window.__catch=()=>({c:!!CAUGHT});window.__gust=()=>{GU=1;GDIR=1};window.__bird=()=>{BWAIT=0};window.__st=()=>({USR,GL,att:LV.filter(l=>l.st===0).length,fall:LV.filter(l=>l.st===1).length,land:LV.filter(l=>l.st===2).length});
 if(location.search.indexOf('still')<0){(function loop(){draw();requestAnimationFrame(loop)})()}else{for(let i=0;i<+(location.search.split('=')[1]||5);i++)draw()}
