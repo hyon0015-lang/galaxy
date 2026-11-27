@@ -5,7 +5,7 @@
 const cv=document.getElementById('c'),g=cv.getContext('2d');let W=320;const H=180;
 let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
 const HAND={on:0,x:0,y:0,o:1,dx:0,dy:0};let ROT=0,T=0,USR=0,HV=0,GL=0,FH=0,CXT=160,BG=null,LV=[],BYC=[];
-const PAL=['#ffd84a','#f9c22e','#f2a31b','#e98a17','#d96d18','#b8541a','#9bb23a','#e0573a'];
+const PAL=['#ffe66e','#ffd23f','#f7b925','#ec9c1d','#d97c19','#b95c1b','#b8c24a','#e0653a','#82993a'];
 const CY=70,RXC=98,RYC=58,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function build(){
  seed=7;BG=document.createElement('canvas');BG.width=W;BG.height=H;const b=BG.getContext('2d');
@@ -39,34 +39,41 @@ function build(){
  const BR=[[-80,40],[-60,22],[-30,12],[0,8],[34,14],[64,26],[84,44],[-90,64],[92,66],[-50,52],[50,50]];
  BR.forEach(([dx,y])=>{ln(CXT,100,CXT+dx,y,2,'#4a3524');ln(CXT,100,CXT+dx*.6,100-(100-y)*.6,3,'#4a3524')});
  // 地上落叶地毯
- for(let i=0;i<1100;i++){const a=rnd()*6.283,d=Math.sqrt(rnd()),x=CXT+Math.cos(a)*d*(130+rnd()*30),y=152+Math.sin(a)*d*26;if(y>132){R2(x,y,rnd()<.5?3:2,2,PAL[(rnd()*5)|0])}}
- for(let i=0;i<80;i++)R2(rnd()*W,138+rnd()*40,3,2,PAL[(rnd()*4)|0]);
- // 树叶
- LV=[];BYC=PAL.map(()=>[]);
- for(let i=0;i<5200;i++){let x,y,ok=0;for(let k=0;k<12&&!ok;k++){x=(rnd()*2-1)*RXC;y=(rnd()*2-1)*RYC;const a=Math.atan2(y/RYC,x/RXC),rm=1+.1*Math.sin(3*a+.5)+.07*Math.sin(5*a+1.2),q=(x/RXC)**2+(y/RYC)**2;if(q<rm*rm)ok=1}
-  const dx=x/RXC,dy=y/RYC,e=Math.min(1,Math.hypot(dx,dy)),lit=-dx*.5-dy*.7+rnd()*.5;
-  let c=lit>.35?0:lit>0?1:lit>-.35?2:lit>-.7?3:4;if(dy>.3&&dx<-.1&&rnd()<.45)c=6;if(rnd()<.04)c=7;if(rnd()<.05)c=5;
-  const l={hx:Math.round(CXT+x),hy:Math.round(CY+y),c,s:(rnd()*3)|0,e:.25+e*.75,k:rnd()*6.28,st:0,x:0,y:0,vx:0,vy:0,ph:0,gy:0,tl:0,dl:0};LV.push(l);BYC[c].push(l)}
+ for(let i=0;i<1700;i++){const a=rnd()*6.283,d=Math.sqrt(rnd()),x=CXT+Math.cos(a)*d*(130+rnd()*30),y=152+Math.sin(a)*d*26;if(y>132){R2(x,y,2,2,PAL[1+((rnd()*rnd()*5)|0)])}}
+ for(let i=0;i<80;i++)R2(rnd()*W,138+rnd()*40,2,2,PAL[1+((rnd()*4)|0)]);
+ // 树冠内部阴影（叶子掉了之后露出来的是暗处而不是天空）
+ for(let y=-RYC;y<=RYC;y++){const q=y/RYC;const w=Math.sqrt(Math.max(0,1-q*q))*RXC*.8*(1+.04*Math.sin(y*.21));R2(CXT-w,CY+y*.85,w*2,1,y>8?'#8a4616':'#9a5018')}
+ // 树叶：先分成一团一团，每团自己有明暗
+ LV=[];BYC=PAL.map(()=>[]);const CL=[];
+ for(let i=0;i<64;i++){let x,y,ok=0;for(let k=0;k<20&&!ok;k++){x=(rnd()*2-1)*RXC*.82;y=(rnd()*2-1)*RYC*.8;const a=Math.atan2(y/RYC,x/RXC),rm=1+.1*Math.sin(3*a+.5)+.07*Math.sin(5*a+1.2);if((x/RXC)**2+(y/RYC)**2<rm*rm*.8)ok=1}
+  CL.push({x,y,r:11+rnd()*10,id:i})}
+ for(let i=0;i<9500;i++){const C=CL[(rnd()*CL.length)|0],a=rnd()*6.283,d=Math.sqrt(rnd());
+  const lx=Math.cos(a)*d,ly=Math.sin(a)*d*.8,x=C.x+lx*C.r,y=C.y+ly*C.r;
+  const a2=Math.atan2(y/RYC,x/RXC),rm=1+.1*Math.sin(3*a2+.5)+.07*Math.sin(5*a2+1.2);if((x/RXC)**2+(y/RYC)**2>rm*rm)continue;
+  const dx=x/RXC,dy=y/RYC,e=Math.min(1,Math.hypot(dx,dy)),lit=(-dx*.5-dy*.6)*.5+(-lx*.35-ly*.8)*.9+(rnd()-.5)*.25;
+  let c=clamp(Math.round(2.3-lit*2.5+(rnd()-.5)*.7),0,5);
+  if(dx<-.2&&dy>.3&&C.id%2===0&&rnd()<.5)c=lit>.1?6:8;else if(C.id%17===0&&rnd()<.3)c=7;
+  const l={hx:Math.round(CXT+x),hy:Math.round(CY+y),c,s:rnd()<.7?2:(rnd()<.5?0:1),e:.25+e*.75,k:rnd()*6.28,st:0,x:0,y:0,vx:0,vy:0,ph:0,gy:0,tl:0,dl:0};LV.push(l);BYC[c].push(l)}
 }
-const shape=(l)=>l.s===0?[3,3]:l.s===1?[4,3]:[3,2];
+const shape=(l)=>l.s===0?[3,2]:l.s===1?[2,3]:[2,2];
 function detach(l,vx,vy){l.st=1;l.x=l.hx;l.y=l.hy;l.vx=vx*.6+(rnd()-.5)*.5;l.vy=-.15+rnd()*.25;l.ph=rnd()*6.28;l.gy=Math.max(l.y+12,134+rnd()*44)}
 function burst(){let n=0;for(let i=0;i<LV.length&&n<170;i++){const l=LV[(rnd()*LV.length)|0];if(l.st===0&&!l.dl){l.dl=1+(rnd()*90|0);n++}}}
 function upd(){
  T++;const on=HAND.on,fist=on&&HAND.o<.3,spd=on?Math.hypot(HAND.dx,HAND.dy)*W:0;
  const tv=on?clamp(HAND.dx*W*.05,-1.5,1.5):0;HV+=(tv-HV)*.2;HV*=.97;
  GL+=((fist?1:0)-GL)*.04;if(fist)FH++;else{if(FH>40)burst();FH=0}
- const hx=HAND.x,hy=HAND.y,R=20+spd*.6,pr=Math.min(.1,spd*.005);
- if(T%38===0){for(let k=0;k<4;k++){const l=LV[(rnd()*LV.length)|0];if(l.st===0&&l.e>.6){detach(l,0,0);break}}}
+ const hx=HAND.x,hy=HAND.y,R=20+spd*.6,pr=Math.min(.05,spd*.0025);
+ if(T%70===0){for(let k=0;k<4;k++){const l=LV[(rnd()*LV.length)|0];if(l.st===0&&l.e>.6){detach(l,0,0);break}}}
  for(let i=0;i<LV.length;i++){const l=LV[i];
   if(l.st===0){
    if(l.dl&&--l.dl===0){detach(l,(rnd()-.4)*.8,0);continue}
    if(on&&!fist&&spd>.7){const dx=l.hx-hx,dy=l.hy-hy;if(dx*dx+dy*dy<R*R&&rnd()<pr){detach(l,HAND.dx*W*.05,HAND.dy*W*.03);USR++}}
   }else if(l.st===1){
-   l.ph+=.06+Math.abs(l.vx)*.03;
+   l.ph+=.04+Math.abs(l.vx)*.02;
    if(on&&!fist){const dx=l.x-hx,dy=l.y-hy;if(dx*dx+dy*dy<R*R*2.2)l.vx+=(HAND.dx*W*.05-l.vx)*.08}
-   l.vx+=(Math.sin(l.ph)*.16+HV*.4+.012-l.vx)*.035;l.vy+=(.26+.1*Math.cos(l.ph*1.3)-l.vy)*.05;
+   l.vx+=(Math.sin(l.ph)*.22+HV*.4+.01-l.vx)*.03;l.vy+=(.19+.09*Math.cos(l.ph*1.3)-l.vy)*.04;
    l.x+=l.vx;l.y+=l.vy;
-   if(l.y>=l.gy){l.st=2;l.x=Math.round(clamp(l.x,2,W-4));l.y=Math.round(l.y);l.tl=900+rnd()*1600}
+   if(l.y>=l.gy){l.st=2;l.x=Math.round(clamp(l.x,2,W-4));l.y=Math.round(l.y);l.tl=1500+rnd()*2500}
   }else if(l.st===2){if(--l.tl<=0)l.st=0}
  }
  if(USR>25&&!GDONE){GDONE=1;say('')}
