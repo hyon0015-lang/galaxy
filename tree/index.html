@@ -4,11 +4,11 @@
 <script>
 const cv=document.getElementById('c'),g=cv.getContext('2d');let W=320;const H=180;
 let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
-const HAND={on:0,x:0,y:0,o:1,dx:0,dy:0};let CAUGHT=null,HELD=0,GLV=[],GU=0,GDIR=1,GWAIT=420,BIRD=null,BWAIT=1500,ROT=0,T=0,USR=0,HV=0,GL=0,FH=0,CXT=160,BG=null,LV=[],BYC=[];
+const HAND={on:0,x:0,y:0,o:1,dx:0,dy:0};let CR=null,DIRTY=1,LASTB=0,CAUGHT=null,HELD=0,GLV=[],GU=0,GDIR=1,GWAIT=420,BIRD=null,BWAIT=1500,ROT=0,T=0,USR=0,HV=0,GL=0,FH=0,CXT=160,BG=null,LV=[],BYC=[];
 const PAL=['#fbd650','#f6bc2b','#efa220','#e48a1a','#cf7019','#a85418','#b8c24a','#e2713a','#82993a','#7d3f16','#fff3b0'];
 const CY=66,RXC=88,RYC=56,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function build(){
- seed=7;GLV=[];BG=document.createElement('canvas');BG.width=W;BG.height=H;const b=BG.getContext('2d');
+ seed=7;GLV=[];CR=document.createElement('canvas');CR.width=W;CR.height=H;DIRTY=1;BG=document.createElement('canvas');BG.width=W;BG.height=H;const b=BG.getContext('2d');
  const R2=(x,y,w,h,c)=>{b.fillStyle=c;b.fillRect(Math.round(x),Math.round(y),w,h)};
  const blob=(cx,cy,r,c,sy)=>{for(let y=-r;y<=r;y++){const w=Math.sqrt(Math.max(0,r*r-y*y))*(sy||1);R2(cx-w,cy+y,w*2,1,c)}};
  const mix=(a,c,t)=>{const p=s=>[1,3,5].map(i=>parseInt(s.substr(i,2),16)),A=p(a),B=p(c);return'#'+A.map((v,i)=>Math.round(v+(B[i]-v)*t).toString(16).padStart(2,'0')).join('')};
@@ -68,7 +68,7 @@ function build(){
   const l={hx:Math.round(CXT+x),hy:Math.round(CY+y),c,s:rnd()<.7?2:(rnd()<.5?0:1),e:.25+e*.75,k:rnd()*6.28,st:0,x:0,y:0,vx:0,vy:0,ph:0,gy:0,tl:0,dl:0};LV.push(l);BYC[c].push(l)}
 }
 const shape=(l)=>l.s===0?[3,2]:l.s===1?[2,3]:[2,2];
-function detach(l,vx,vy){l.st=1;l.x=l.hx;l.y=l.hy;l.vx=vx*.6+(rnd()-.5)*.5;l.vy=-.15+rnd()*.25;l.ph=rnd()*6.28;l.gy=Math.max(l.y+12,134+rnd()*44)}
+function detach(l,vx,vy){DIRTY=1;l.st=1;l.x=l.hx;l.y=l.hy;l.vx=vx*.6+(rnd()-.5)*.5;l.vy=-.15+rnd()*.25;l.ph=rnd()*6.28;l.gy=Math.max(l.y+12,134+rnd()*44)}
 function burst(){let n=0;for(let i=0;i<LV.length&&n<170;i++){const l=LV[(rnd()*LV.length)|0];if(l.st===0&&!l.dl){l.dl=1+(rnd()*90|0);n++}}}
 function upd(){
  T++;
@@ -101,7 +101,7 @@ function upd(){
    l.vx+=(Math.sin(l.ph)*.22+HV*.4+.01-l.vx)*.03;l.vy+=(.19+.09*Math.cos(l.ph*1.3)-l.vy)*.04;
    l.x+=l.vx;l.y+=l.vy;
    if(l.y>=l.gy){l.st=2;l.x=Math.round(clamp(l.x,2,W-4));l.y=Math.round(l.y);l.tl=1500+rnd()*2500}
-  }else if(l.st===2){if(--l.tl<=0)l.st=0}
+  }else if(l.st===2){if(--l.tl<=0){l.st=0;DIRTY=1}}
  }
  if(USR>25&&!GDONE){GDONE=1;say('')}
 }
@@ -110,14 +110,33 @@ function drawScene(){
  for(let i=0;i<GLV.length;i++){const l=GLV[i];g.fillStyle=PAL[l.c];g.fillRect(Math.round(l.x),Math.round(l.y-l.hp),l.w,2)}
  for(let ci=0;ci<PAL.length;ci++){g.fillStyle=PAL[ci];const A=BYC[ci];for(let i=0;i<A.length;i++){const l=A[i];if(l.st===2){const s=shape(l);g.fillRect(l.x,l.y,s[0],s[1])}}}
  const sw=Math.sin(T*.018)*.5;
- for(let ci=0;ci<PAL.length;ci++){g.fillStyle=PAL[ci];const A=BYC[ci];for(let i=0;i<A.length;i++){const l=A[i];if(l.st===0){const s=shape(l),o=Math.round((sw*Math.sin(l.k+T*.02)+HV*1.6+GU*GDIR*(1.1+1.2*Math.sin(T*.07-l.hx*.04)))*l.e);g.fillRect(l.hx+o,l.hy,s[0],s[1])}}}
+ if(DIRTY&&T-LASTB>=4){const c=CR.getContext('2d');c.clearRect(0,0,W,H);for(let ci=0;ci<PAL.length;ci++){c.fillStyle=PAL[ci];const A=BYC[ci];for(let i=0;i<A.length;i++){const l=A[i];if(l.st===0){const s=shape(l);c.fillRect(l.hx,l.hy,s[0],s[1])}}}DIRTY=0;LASTB=T}
+ for(let by=0;by<H;by+=6){const o=Math.round((sw*Math.sin(T*.02+by*.05)+HV*1.6+GU*GDIR*(1.1+1.2*Math.sin(T*.07-by*.12)))*.8);g.drawImage(CR,0,by,W,6,o,by,W,6)}
  if(GL>.01){g.globalCompositeOperation='lighter';g.globalAlpha=.13*GL;const q=g.createRadialGradient(CXT,CY,6,CXT,CY,95);q.addColorStop(0,'#ffe9a0');q.addColorStop(.7,'#ffb84a');q.addColorStop(1,'rgba(255,170,60,0)');g.fillStyle=q;g.fillRect(0,0,W,H);g.globalAlpha=GL*.9;g.fillStyle='#fff6c8';for(let i=0;i<26;i++){const l=LV[(i*97+((T>>3)*31))%LV.length];if(l.st===0)g.fillRect(l.hx,l.hy,1,1)}g.globalAlpha=1;g.globalCompositeOperation='source-over'}
  for(let ci=0;ci<PAL.length;ci++){g.fillStyle=PAL[ci];const A=BYC[ci];for(let i=0;i<A.length;i++){const l=A[i];if(l.st===1){const w=Math.sin(l.ph),sh=Math.abs(w)>.6?[3,1]:[3,2];g.fillRect(Math.round(l.x),Math.round(l.y),sh[0],sh[1])}}}
 }
 let VG=null;function vig(){VG=document.createElement('canvas');VG.width=W;VG.height=H;const v=VG.getContext('2d'),q=v.createRadialGradient(W/2,H*.5,H*.45,W/2,H*.5,Math.hypot(W,H)*.52);q.addColorStop(0,'rgba(30,22,44,0)');q.addColorStop(1,'rgba(30,22,44,.34)');v.fillStyle=q;v.fillRect(0,0,W,H)}
 function drawHeld(){if(!CAUGHT)return;const x=Math.round(HAND.x),y=Math.round(HAND.y+Math.sin(CAUGHT.ph*2)*1);g.fillStyle='rgba(90,44,14,.85)';g.fillRect(x-3,y-2,7,5);g.fillStyle='#ffd23f';g.fillRect(x-2,y-1,5,3);g.fillStyle='#fff3b0';g.fillRect(x-1,y-1,2,1);g.fillStyle='#e48a1a';g.fillRect(x+2,y+1,1,1);g.fillStyle='#ffffff';for(let i=0;i<6;i++){const a=CAUGHT.ph*1.3+i*1.047,r=7+Math.sin(CAUGHT.ph*3+i)*1.5;g.fillRect(Math.round(x+Math.cos(a)*r),Math.round(y+Math.sin(a)*r*.8),1,1)}}
 function drawBird(){if(!BIRD)return;if(BIRD.m===1){const x=Math.round(BIRD.x),y=Math.round(BIRD.y),t=(BIRD.t>>5)%7===3?1:0;g.fillStyle='#3e3e48';g.fillRect(x,y-2,3,2);g.fillRect(x+3,y-3-t,1,2);g.fillRect(x-2,y-1,2,1);g.fillRect(x,y,1,1);g.fillRect(x+2,y,1,1);g.fillStyle='#b8b8c0';g.fillRect(x+4,y-3-t,1,1);return}const x=Math.round(BIRD.x),y=Math.round(BIRD.y),up=Math.sin(BIRD.ph)>0;g.fillStyle='#3e3e48';g.fillRect(x,y,3,1);g.fillRect(x+(BIRD.vx>0?3:-1),y,1,1);if(up){g.fillRect(x,y-1,1,1);g.fillRect(x+2,y-1,1,1);g.fillRect(x-1,y-2,1,1);g.fillRect(x+3,y-2,1,1)}else{g.fillRect(x-1,y+1,1,1);g.fillRect(x+3,y+1,1,1);g.fillRect(x-2,y+2,1,1);g.fillRect(x+4,y+2,1,1)}}
-function draw(){ROT+=.01;upd();drawScene();drawBird();drawHeld()}
+let TRL=[],PREV=null;
+function drawCore2(ox,c,px,py,fo,al){const sx=v=>Math.round(v/c)*c,cx=sx(px),cy=sx(py),rr=(2+fo*4)*c,P=[];
+ for(let i=0;i<8;i++){const t=i/8*6.283+ROT;P.push([sx(cx+Math.cos(t)*rr),sx(cy+Math.sin(t)*rr),fo<.5?'#fff0b8':'#ffffff'])}
+ P.push([cx,cy,'#ffffff']);[[1,0],[-1,0],[0,1],[0,-1]].forEach(([a,b])=>P.push([cx+a*c,cy+b*c,'#ff9ac8']));
+ ox.globalAlpha=al;ox.fillStyle='rgba(70,40,15,.75)';P.forEach(q=>ox.fillRect(q[0]-1.5,q[1]-1.5,c+3,c+3));P.forEach(q=>{ox.fillStyle=q[2];ox.fillRect(q[0],q[1],c,c)});ox.globalAlpha=1}
+function updateHand(){if(UI.st!=='on')return;
+ if(HAND.tOn){if(!HAND.on||!PREV){HAND.x=HAND.tx;HAND.y=HAND.ty;HAND.o=HAND.to;HAND.on=1;PREV=[HAND.x,HAND.y];TRL.length=0}
+  else{const k=.34;HAND.x+=(HAND.tx-HAND.x)*k;HAND.y+=(HAND.ty-HAND.y)*k;HAND.o+=(HAND.to-HAND.o)*.25;HAND.dx=(HAND.x-PREV[0])/W*2;HAND.dy=(HAND.y-PREV[1])/H*2;PREV=[HAND.x,HAND.y]}}
+ else{HAND.on=0;PREV=null;HAND.dx=0;HAND.dy=0}}
+function drawCursor(){const ov=document.getElementById('go');if(!ov)return;const dpr=Math.min(2,devicePixelRatio||1),w=innerWidth,h=innerHeight;if(ov.width!==w*dpr||ov.height!==h*dpr){ov.width=w*dpr;ov.height=h*dpr}
+ const ox=ov.getContext('2d');ox.setTransform(dpr,0,0,dpr,0,0);ox.clearRect(0,0,w,h);if(UI.st!=='on')return;
+ const c=Math.max(3,Math.round(h/140));
+ if(HAND.on){const px=HAND.x/W*w,py=HAND.y/H*h,edge=Math.min(HAND.x/W,1-HAND.x/W,HAND.y/H,1-HAND.y/H)<.1,sx=v=>Math.round(v/c)*c;
+  TRL.push([sx(px),sx(py)]);if(TRL.length>9)TRL.shift();ox.globalAlpha=edge?.5:1;
+  TRL.forEach((q,i)=>{if(i===TRL.length-1)return;const f=i/TRL.length;ox.fillStyle='rgba(255,250,235,'+(.18+f*.6)+')';if((i&1)||f>.5)ox.fillRect(q[0],q[1],c,c)});
+  drawCore2(ox,c*1.4|0,px,py,HAND.o,edge?.5:1);ox.globalAlpha=1}
+ else if(!GDONE){const t=(performance.now()/1000)%3.6,e=t<.4?0:t<2.6?(t-.4)/2.2:1,gx=.28+.44*(e*e*(3-2*e));
+  drawCore2(ox,c*1.4|0,gx*w,.36*h,1,.8)}}
+function draw(){ROT+=.01;updateHand();upd();drawScene();drawBird();drawHeld();drawCursor()}
 function fit(){const w=Math.max(220,Math.min(520,Math.round(H*innerWidth/innerHeight)));if(w!==cv.width||!BG){cv.width=w;W=w;CXT=Math.round(w*.45);build();vig()}}
 const UI={st:'idle',msg:'',hand:null};
 const cam=document.createElement('video');cam.playsInline=true;cam.muted=true;
@@ -144,25 +163,14 @@ function feed(lm){ // lm: 21 个点，x,y 0..1（未镜像）
  fx=adapt(fx,x,14);fy=adapt(fy,y,14);fo=adapt(fo,o,3);
  const dx=fx-lastx,dy=fy-lasty;lastx=fx;lasty=fy;
  if(fo<.3)GR=1;else if(fo>.55)GR=0; // 滞回：握拳=抓住，张开=松手
- HAND.on=1;HAND.x=fx*W;HAND.y=fy*H;HAND.o=fo;HAND.dx=dx;HAND.dy=dy;
+ HAND.tOn=1;HAND.tx=fx*W;HAND.ty=fy*H;HAND.to=fo;
  say(fo<.3?'握拳 · 树在屏息':'')}
 async function startHand(){const b=document.getElementById('gb');if(UI.st==='on'){stopHand();return}
  try{say('请求摄像头…');const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:false});cam.srcObject=s;await cam.play();
   say('加载手势识别…');await load('../mp/hands.js');
   for(const f of ['hands.binarypb','hand_landmark_lite.tflite','hands_solution_packed_assets.data']){const b64=await (await fetch('../mp/'+f+'.b64.txt')).text(),bin=atob(b64.trim()),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);BLOBS[f]=URL.createObjectURL(new Blob([u],{type:'application/octet-stream'}))}
   hands=new Hands({locateFile:f=>BLOBS[f]||'../mp/'+f});hands.setOptions({maxNumHands:1,modelComplexity:0,minDetectionConfidence:.6,minTrackingConfidence:.5,selfieMode:false});
-  hands.onResults(window.__onres=r=>{busy=0;const ov=document.getElementById('go'),dpr=Math.min(2,devicePixelRatio||1),w=innerWidth,h=innerHeight;if(ov.width!==w*dpr||ov.height!==h*dpr){ov.width=w*dpr;ov.height=h*dpr}
-   const ox=ov.getContext('2d');ox.setTransform(dpr,0,0,dpr,0,0);ox.clearRect(0,0,w,h);
-   if(r.multiHandLandmarks&&r.multiHandLandmarks[0]){const L=r.multiHandLandmarks[0];
-    lost=0;feed(L);
-    const c=Math.max(3,Math.round(h/140)),sx=v=>Math.round(v/c)*c,px=fx*w,py=fy*h,edge=Math.min(fx,1-fx,fy,1-fy)<.1,al=edge?.5:1;
-    TR.push([sx(px),sx(py)]);if(TR.length>8)TR.shift();
-    TR.forEach((q,i)=>{if(i===TR.length-1)return;const f=i/TR.length;ox.fillStyle='rgba(255,210,230,'+(.15+f*.5)+')';if((i&1)||f>.5)ox.fillRect(q[0],q[1],c,c)});
-    drawCore(ox,c,px,py,fo,al);
-   }else{fx=null;lastx=null;lasty=null;GR=0;TR.length=0;
-    HAND.on=0;if(!GDONE){const c=Math.max(3,Math.round(h/140)),t=(performance.now()/1000)%3.6,e=t<.4?0:t<2.6?(t-.4)/2.2:1,gx=.28+.44*(e*e*(3-2*e));
-     drawCore(ox,c*1.5|0,gx*w,.36*h,1,.7);ox.fillStyle='rgba(255,246,226,.85)';ox.font=Math.round(h/34)+'px sans-serif';ox.textAlign='center';ox.fillText('手慢慢扫过树，风就来了',w/2,h*.36+h*.14)}
-if(++lost>20){say('没看到手 · 把手举到镜头前')}}});
+  hands.onResults(window.__onres=r=>{busy=0;if(r.multiHandLandmarks&&r.multiHandLandmarks[0]){lost=0;feed(r.multiHandLandmarks[0])}else{fx=null;lastx=null;lasty=null;GR=0;HAND.tOn=0;if(++lost>20){say('没看到手 · 把手举到镜头前')}}});
   await hands.initialize();UI.st='on';showCard(0);b.textContent='✋ 关闭手势';say('把手举到镜头前');
   (function pump(){if(UI.st!=='on')return;if(!busy&&cam.readyState>=2){busy=1;hands.send({image:cam}).catch(()=>{busy=0})}requestAnimationFrame(pump)})();
  }catch(e){UI.st='idle';UI.fail=1;showCard(0);say(e&&e.name==='NotAllowedError'?'没有摄像头权限，用手指拖动也可以':'手势用不了（'+(e&&e.message||e)+'），用手指拖动也可以')}}
