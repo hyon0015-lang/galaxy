@@ -34,15 +34,15 @@ function build(){
  for(let i=0;i<14;i++){const x=CXT+66+rnd()*(W-CXT-60),y=162+rnd()*18,r=8+rnd()*7;blob(x,y,r,i%2?'#3f6b34':'#4f7c3a')}
  for(let i=0;i<60;i++){R2(rnd()*120,150+rnd()*30,2,1,'#6f9a4a')}
  // 树冠内部的暗处：一层深色的叶子，不是一整块色
- for(let i=0;i<2600;i++){const x=(rnd()*2-1)*RXC*.86,y=(rnd()*2-1)*RYC*.84,a=Math.atan2(y/RYC,x/RXC),rm=1+.1*Math.sin(3*a+.5)+.07*Math.sin(5*a+1.2);if((x/RXC)**2+(y/RYC)**2>rm*rm*.72)continue;R2(CXT+x,CY+y,rnd()<.5?3:2,2,['#7a3d14','#8f4818','#a35519'][(rnd()*3)|0])}
+ for(let i=0;i<2600;i++){const x=(rnd()*2-1)*RXC*.86,y=(rnd()*2-1)*RYC*.84,a=Math.atan2(y/RYC,x/RXC),rm=1+.1*Math.sin(3*a+.5)+.07*Math.sin(5*a+1.2);if((x/RXC)**2+(y/RYC)**2>rm*rm*.72)continue;R2(CXT+x,CY+y,rnd()<.5?3:2,2,['#a85a1a','#b8661b','#c9751c'][(rnd()*3)|0])}
  // 树干与枝：从树干一路分叉、越分越细、略带弯曲，枝尖都藏在树冠里
  const dot=(x,y,w)=>{R2(x,y,w,w,'#4a3524');if(w>2)R2(x,y,1,w,'#6a4c32')};
- for(let y=134;y>=104;y--){const t=(134-y)/30,wd=Math.round(11-t*4+(y>126?(y-126)*.7:0));R2(CXT-wd/2,y,wd,1,'#4a3524');R2(CXT-wd/2,y,1,1,'#6e5034');R2(CXT-wd/2+1,y,1,1,'#5d4129');R2(CXT+wd/2-1,y,1,1,'#33241a')}
+ for(let y=134;y>=96;y--){const t=(134-y)/38,wd=Math.round(14-t*5+(y>126?(y-126)*.9:0));R2(CXT-wd/2,y,wd,1,'#4a3524');R2(CXT-wd/2,y,1,1,'#6e5034');R2(CXT-wd/2+1,y,1,1,'#5d4129');R2(CXT+wd/2-1,y,1,1,'#33241a')}
  const limb=(x,y,ang,len,w,dep)=>{let cx=x,cy=y,a=ang,cv=(rnd()-.5)*.08;for(let i=0;i<len;i++){cx+=Math.cos(a);cy+=Math.sin(a);a+=cv;cv+=(rnd()-.5)*.03;
-   const q=((cx-CXT)/RXC)**2+((cy-CY)/RYC)**2;if(q>.62)return;dot(cx,cy,Math.max(1,Math.round(w)));w-=.045;
-   if(dep<4&&i>len*.35&&rnd()<.07){limb(cx,cy,a+(rnd()<.5?-1:1)*(.45+rnd()*.35),len*.62,w*.75,dep+1)}}
-  if(dep<4&&w>1.2){limb(cx,cy,a-.4,len*.6,w*.7,dep+1);limb(cx,cy,a+.4,len*.6,w*.7,dep+1)}};
- [[-1.9,46,5],[-1.45,50,5.5],[-1.15,48,5],[-2.4,40,4.5],[-.75,40,4.5],[-1.65,44,5]].forEach(([an,ln2,w])=>limb(CXT+(rnd()-.5)*3,108,an,ln2,w,0));
+   const q=((cx-CXT)/RXC)**2+((cy-CY)/RYC)**2;if(q>.5)return;dot(cx,cy,Math.max(2,Math.round(w)));w-=.06;
+   if(dep<2&&i>len*.4&&rnd()<.04){limb(cx,cy,a+(rnd()<.5?-1:1)*(.45+rnd()*.35),len*.62,w*.75,dep+1)}}
+  if(dep<2&&w>2){limb(cx,cy,a-.45,len*.62,w*.72,dep+1);limb(cx,cy,a+.45,len*.62,w*.72,dep+1)}};
+ [[-2.3,44,6],[-1.57,52,7],[-.85,44,6]].forEach(([an,ln2,w])=>limb(CXT,98,an,ln2,w,0));
  // 地上落叶地毯
  for(let i=0;i<1700;i++){const a=rnd()*6.283,d=Math.sqrt(rnd()),x=CXT+Math.cos(a)*d*(130+rnd()*30),y=152+Math.sin(a)*d*26;if(y>132){R2(x,y,2,2,PAL[1+((rnd()*rnd()*5)|0)])}}
  for(let i=0;i<80;i++)R2(rnd()*W,138+rnd()*40,2,2,PAL[1+((rnd()*4)|0)]);
@@ -55,7 +55,7 @@ function build(){
   const a2=Math.atan2(y/RYC,x/RXC),rm=1+.1*Math.sin(3*a2+.5)+.07*Math.sin(5*a2+1.2);if((x/RXC)**2+(y/RYC)**2>rm*rm)continue;
   const dx=x/RXC,dy=y/RYC,e=Math.min(1,Math.hypot(dx,dy)),lit=(-dx*.5-dy*.6)*.5+(-lx*.35-ly*.8)*.9+(rnd()-.5)*.25;
   let c=clamp(Math.round(2.3-lit*2.5+(rnd()-.5)*.7),0,5);
-  if(dx<-.2&&dy>.3&&C.id%2===0&&rnd()<.5)c=lit>.1?6:8;else if(C.id%17===0&&rnd()<.3)c=7;
+  if(dx<-.2&&dy>.3&&C.id%2===0&&rnd()<.3)c=lit>.1?6:8;else if(C.id%17===0&&rnd()<.3)c=7;
   const l={hx:Math.round(CXT+x),hy:Math.round(CY+y),c,s:rnd()<.7?2:(rnd()<.5?0:1),e:.25+e*.75,k:rnd()*6.28,st:0,x:0,y:0,vx:0,vy:0,ph:0,gy:0,tl:0,dl:0};LV.push(l);BYC[c].push(l)}
 }
 const shape=(l)=>l.s===0?[3,2]:l.s===1?[2,3]:[2,2];
