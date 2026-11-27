@@ -6,7 +6,7 @@ const cv=document.getElementById('c'),g=cv.getContext('2d');let W=320;const H=18
 let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
 const HAND={on:0,x:0,y:0,o:1,dx:0,dy:0};let ROT=0,T=0,USR=0,HV=0,GL=0,FH=0,CXT=160,BG=null,LV=[],BYC=[];
 const PAL=['#fbd650','#f6bc2b','#efa220','#e48a1a','#cf7019','#a85418','#b8c24a','#e2713a','#82993a'];
-const CY=72,RXC=106,RYC=66,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const CY=66,RXC=88,RYC=56,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function build(){
  seed=7;BG=document.createElement('canvas');BG.width=W;BG.height=H;const b=BG.getContext('2d');
  const R2=(x,y,w,h,c)=>{b.fillStyle=c;b.fillRect(Math.round(x),Math.round(y),w,h)};
@@ -15,8 +15,8 @@ function build(){
  // 灰蓝的天
  for(let y=0;y<134;y++)R2(0,y,W,1,mix('#c4d0de','#e3e5e6',Math.min(1,y/90)));
  // 右上：橄榄绿的树
- for(let i=0;i<18;i++){const x=CXT+70+rnd()*(W-CXT-50),y=8+rnd()*62,r=12+rnd()*14;blob(x,y,r,['#8fa84a','#a3b95a','#7d973f'][i%3])}
- for(let i=0;i<10;i++){blob(CXT+90+rnd()*(W-CXT-80),6+rnd()*40,8+rnd()*8,'#b9c870')}
+ for(let i=0;i<9;i++){const x=CXT+90+rnd()*(W-CXT-70),y=8+rnd()*50,r=12+rnd()*12;blob(x,y,r,['#8fa84a','#a3b95a','#7d973f'][i%3])}
+ for(let i=0;i<5;i++){blob(CXT+100+rnd()*(W-CXT-90),6+rnd()*34,8+rnd()*7,'#b9c870')}
  // 左上：灰瓦屋顶、烟囱；中间远处的深色屋顶尖
  for(let y=0;y<18;y++){const w=Math.round(CXT*.4+y*1.1);R2(0,y+2,w,1,y%3===2?'#4b484b':'#5c595c')}
  R2(CXT*.34,0,8,12,'#3d3a3c');R2(CXT*.34-1,0,10,2,'#55524f');R2(CXT*.2,0,5,8,'#3d3a3c');
@@ -30,20 +30,20 @@ function build(){
  // 围墙与地面
  R2(0,112,W-30,22,'#b8b5ad');R2(0,112,W-30,2,'#d3d0c8');for(let x=0;x<W-30;x+=26)R2(x,114,1,20,'#a29f97');R2(CXT+34,116,18,18,'#cfcac0');R2(CXT+34,116,18,1,'#a29f97');
  for(let y=134;y<H;y++)R2(0,y,W,1,mix('#a99f8c','#8e8571',(y-134)/46));
- for(let i=0;i<900;i++){R2(rnd()*W,134+rnd()*46,2,1,rnd()<.5?'#bdb39f':'#8b8270')}
+ for(let i=0;i<350;i++){R2(rnd()*W,134+rnd()*46,2,1,rnd()<.5?'#bdb39f':'#8b8270')}
  // 长椅
- R2(CXT-112,138,24,3,'#6b4a2c');R2(CXT-112,141,2,5,'#4a3220');R2(CXT-90,141,2,5,'#4a3220');
+ 
  // 小蓝架子和橙色线圈（照片里树下的小东西）
  R2(CXT+2,156,2,14,'#27406e');R2(CXT-3,153,12,3,'#e8e2d0');R2(CXT-1,157,5,6,'#e0701c');R2(CXT,158,3,4,'#f08a2a');
  // 地上落叶地毯
- for(let i=0;i<1700;i++){const a=rnd()*6.283,d=Math.sqrt(rnd()),x=CXT+Math.cos(a)*d*(125+rnd()*30),y=154+Math.sin(a)*d*28;if(y>134&&x>0&&x<W-30){R2(x,y,2,2,PAL[1+((rnd()*rnd()*3.5)|0)])}}
+ for(let i=0;i<950;i++){const a=rnd()*6.283,d=Math.sqrt(rnd()),x=CXT+Math.cos(a)*d*(100+rnd()*26),y=154+Math.sin(a)*d*28;if(y>134&&x>0&&x<W-30){R2(x,y,2,2,PAL[1+((rnd()*rnd()*3.5)|0)])}}
  b.globalAlpha=.07;for(let k=0;k<6;k++){const rx=150-k*12,ry=21-k*2.5;for(let y=-ry;y<=ry;y++){const w=Math.sqrt(1-(y/ry)**2)*rx;b.fillStyle='#2a2238';b.fillRect(Math.round(CXT+14-w),150+y,Math.round(w*2),1)}}b.globalAlpha=.14;b.fillStyle='#2a2238';b.fillRect(CXT-110,112,230,22);b.globalAlpha=1;
  // 前景灌木：深色，框住画面下沿
- for(let i=0;i<22;i++){const x=-4+rnd()*128,y=160+rnd()*24,r=10+rnd()*10;blob(x,y,r,i%3?'#3a6a32':'#4a7a3a')}
- for(let i=0;i<14;i++){const x=CXT+80+rnd()*(W-CXT-60),y=164+rnd()*18,r=9+rnd()*8;blob(x,y,r,i%3?'#3a6a32':'#4a7a3a')}
- for(let i=0;i<420;i++){const x=rnd()<.6?rnd()*130:CXT+80+rnd()*(W-CXT-70),y=158+rnd()*22;const px=b.getImageData(Math.max(0,Math.min(W-1,x|0)),Math.min(H-1,y|0),1,1).data;if(px[1]>px[0]&&px[1]<120)R2(x,y,2,2,['#4f8038','#2d5a2a','#5f9040'][(rnd()*3)|0])}for(let i=0;i<260;i++){const x=rnd()<.6?rnd()*130:CXT+80+rnd()*(W-CXT-70);R2(x,156+rnd()*24,2,2,PAL[(rnd()*3)|0])}
+ for(let i=0;i<14;i++){const x=-4+rnd()*100,y=164+rnd()*20,r=9+rnd()*8;blob(x,y,r,i%3?'#3a6a32':'#4a7a3a')}
+ for(let i=0;i<8;i++){const x=CXT+110+rnd()*(W-CXT-100),y=168+rnd()*14,r=8+rnd()*6;blob(x,y,r,i%3?'#3a6a32':'#4a7a3a')}
+ for(let i=0;i<110;i++){const x=rnd()<.6?rnd()*130:CXT+80+rnd()*(W-CXT-70),y=158+rnd()*22;const px=b.getImageData(Math.max(0,Math.min(W-1,x|0)),Math.min(H-1,y|0),1,1).data;if(px[1]>px[0]&&px[1]<120)R2(x,y,2,2,['#4f8038','#2d5a2a','#5f9040'][(rnd()*3)|0])}for(let i=0;i<60;i++){const x=rnd()<.6?rnd()*130:CXT+80+rnd()*(W-CXT-70);R2(x,156+rnd()*24,2,2,PAL[(rnd()*3)|0])}
  // 树冠内部的暗处：一层暖褐色的叶子
- for(let i=0;i<2200;i++){const x=(rnd()*2-1)*RXC*.88,y=(rnd()*2-1)*RYC*.86,a=Math.atan2(y/RYC,x/RXC),rm=1+.1*Math.sin(3*a+.5)+.07*Math.sin(5*a+1.2);if((x/RXC)**2+(y/RYC)**2>rm*rm*.74||Math.hypot(x/RXC*.9,y/RYC-.5)<.27)continue;R2(CXT+x,CY+y,rnd()<.5?3:2,2,['#a85a1a','#b8661b','#c9751c'][(rnd()*3)|0])}
+ for(let i=0;i<1500;i++){const x=(rnd()*2-1)*RXC*.88,y=(rnd()*2-1)*RYC*.86,a=Math.atan2(y/RYC,x/RXC),rm=1+.1*Math.sin(3*a+.5)+.07*Math.sin(5*a+1.2);if((x/RXC)**2+(y/RYC)**2>rm*rm*.74||Math.hypot(x/RXC*.9,y/RYC-.5)<.27)continue;R2(CXT+x,CY+y,rnd()<.5?3:2,2,['#a85a1a','#b8661b','#c9751c'][(rnd()*3)|0])}
  // 树干与枝
  const dot=(x,y,w)=>{R2(x,y,w,w,'#4a3524');if(w>2)R2(x,y,1,w,'#6a4c32')};
  for(let y=134;y>=86;y--){const t=(134-y)/48,wd=Math.round(14-t*5+(y>126?(y-126)*.9:0));R2(CXT-wd/2,y,wd,1,'#4a3524');R2(CXT-wd/2,y,1,1,'#6e5034');R2(CXT-wd/2+1,y,1,1,'#5d4129');R2(CXT+wd/2-1,y,1,1,'#33241a')}
@@ -54,12 +54,12 @@ function build(){
  [[-2.3,50,6],[-1.57,58,7],[-.85,50,6]].forEach(([an,ln2,w])=>limb(CXT,90,an,ln2,w,0));
  // 树叶：一团一团，每团有明暗；以明黄为主
  LV=[];BYC=PAL.map(()=>[]);const CL=[];
- for(let i=0;i<90;i++){let x,y,ok=0;for(let k=0;k<20&&!ok;k++){x=(rnd()*2-1)*RXC*.84;y=(rnd()*2-1)*RYC*.82;const a=Math.atan2(y/RYC,x/RXC),rm=1+.1*Math.sin(3*a+.5)+.07*Math.sin(5*a+1.2);if((x/RXC)**2+(y/RYC)**2<rm*rm*.8)ok=1}
+ for(let i=0;i<64;i++){let x,y,ok=0;for(let k=0;k<20&&!ok;k++){x=(rnd()*2-1)*RXC*.84;y=(rnd()*2-1)*RYC*.82;const a=Math.atan2(y/RYC,x/RXC),rm=1+.1*Math.sin(3*a+.5)+.07*Math.sin(5*a+1.2);if((x/RXC)**2+(y/RYC)**2<rm*rm*.8)ok=1}
   CL.push({x,y,r:10+rnd()*10,id:i})}
- for(let i=0;i<17000;i++){const C=CL[(rnd()*CL.length)|0],a=rnd()*6.283,d=Math.sqrt(rnd());
+ for(let i=0;i<13000;i++){const C=CL[(rnd()*CL.length)|0],a=rnd()*6.283,d=Math.sqrt(rnd());
   const lx=Math.cos(a)*d,ly=Math.sin(a)*d*.8,x=C.x+lx*C.r,y=C.y+ly*C.r;
   const a2=Math.atan2(y/RYC,x/RXC),rm=1+.1*Math.sin(3*a2+.5)+.07*Math.sin(5*a2+1.2);if((x/RXC)**2+(y/RYC)**2>rm*rm)continue;
-  const dx=x/RXC,dy=y/RYC;if(Math.hypot(dx*.9,dy-.5)<.3&&rnd()<.88)continue;const e=Math.min(1,Math.hypot(dx,dy)),lit=(-dx*.4-dy*.7)*.5+(-lx*.35-ly*.8)*.8+(rnd()-.5)*.25;
+  const dx=x/RXC,dy=y/RYC;if(Math.hypot(dx*.9,dy-.5)<.26&&rnd()<.85)continue;const e=Math.min(1,Math.hypot(dx,dy)),lit=(-dx*.4-dy*.7)*.5+(-lx*.35-ly*.8)*.8+(rnd()-.5)*.25;
   let c=clamp(Math.round(1.45-lit*2.6+(rnd()-.5)*.7),0,5);
   if(dx<-.35&&dy>.35&&C.id%2===0&&rnd()<.3)c=lit>.1?6:8;else if(C.id%19===0&&rnd()<.12)c=7;
   const l={hx:Math.round(CXT+x),hy:Math.round(CY+y),c,s:rnd()<.7?2:(rnd()<.5?0:1),e:.25+e*.75,k:rnd()*6.28,st:0,x:0,y:0,vx:0,vy:0,ph:0,gy:0,tl:0,dl:0};LV.push(l);BYC[c].push(l)}
